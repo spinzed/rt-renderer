@@ -54,7 +54,7 @@ Moguće se pokretati tipkama WASD, Space, Shift i Control.
 ## 3. vježba - Demonstracijski projekt
 Tema ove vježbe je proizvoljna, cilj je prikazati neke od animacijskih tehnika na konkretnom primjeru.
 
-Ovdje je rješenje zadatka implementirano kao igra u kojoj kontroliramo svemirski brod koji treba
+Ovdje je rješenje zadatka implementirano kao igra u kojoj kontroliramo svemirsku letjelicu koji treba
 proći kroz klance i ne udariti u zid.
 Igrač nad brodom ima bočnu i okomitu kontrolu, a brod automatski ide prema naprijed određenom brzinom
 koja se konstatno povećava.
@@ -70,13 +70,13 @@ izračuna sa zidovima klanca.
 Implementirane su jednostavne animacije pri učitavanju igre te pri udaru u zid.
 Pri promjeni brzine broda, kamera malo mijenja poziciju s obzirom na interpoliranu brzinu.
 
-Brod se može kontrolirati tipkovnicom ili kontrolerom. Na tipkovnici se brod upravlja
-pomoću strjelica, a na kontroleru pomoću lijevog analognog upravljača.
-Moguće je malo ubrzati ili usporiti brod pritiskom na SHIFT/CTRL na tipkovnici ili LT/RT na kontroleru.
-Kako bi ponovno pokrenuli igru, moguće je pritisnuti tipku R na tipkovnici ili Y na kontroleru
-(može se razlikovati na nekim kontrolerima).
+Brod se može kontrolirati tipkovnicom ili upravljačem. Na tipkovnici se brod upravlja
+pomoću strjelica, a na upravljaču pomoću lijevog analognog upravljača.
+Moguće je malo ubrzati ili usporiti brod pritiskom na SHIFT/CTRL na tipkovnici ili LT/RT na upravljaču.
+Kako bi ponovno pokrenuli igru, moguće je pritisnuti tipku R na tipkovnici ili Y na upravljaču
+(može se razlikovati na nekim upravljačima).
 Pritiskom na SHIFT/PAUSE moguće je otvoriti debug menu gdje je moguće onemogućiti koliziju,
-promijeniti brzinu unaprijed svemirskog broda, osloboditi kameru od povezanosti sa modelom svemirskog broda i sl.
+promijeniti brzinu unaprijed letjelice, osloboditi kameru od povezanosti sa modelom letjelice i sl.
 
 Za pokretanje demonstracije potrebno je izvršiti naredbu:  
 `./run.sh game`
