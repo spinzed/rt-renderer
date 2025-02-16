@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(rt-renderer)
+project(rt-renderer LANGUAGES C CXX)
 
 # Options for dependencies
 option(GLFW_BUILD_DOCS OFF)
@@ -22,7 +22,16 @@ set(GLFW_BUILD_WAYLAND FALSE)
 add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/assimp)
 
-# Additional settings for the main project in 'project-renderer'
+# Optional CUDA support for the raytracer
+option(ENABLE_CUDA "Enable CUDA support" OFF)
+
+if(ENABLE_CUDA)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    message(STATUS "CUDA enabled")
+endif()
+
+# Compiler-specific settings
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /std:c++20 /permissive-")
 else()
@@ -54,6 +63,7 @@ add_library(imgui STATIC
 file(GLOB DEPENDENCY_SOURCES dependencies/glad/src/glad.c)
 file(GLOB_RECURSE PROJECT_HEADERS headers/*.hpp headers/*.h)
 file(GLOB_RECURSE PROJECT_SOURCES sources/*.cpp)
+file(GLOB_RECURSE PROJECT_CUDA_SOURCES sources/*.cu)
 file(GLOB PROJECT_SHADERS shaders/*.comp shaders/*.frag shaders/*.geom shaders/*.vert)
 file(GLOB_RECURSE PROJECT_RESOURCES resources/*)
 
@@ -65,7 +75,13 @@ source_group("Resources" FILES ${PROJECT_RESOURCES})
 set_source_files_properties(${PROJECT_RESOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 add_definitions(-DGLFW_INCLUDE_NONE -DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\" -DNOMINMAX)
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${PROJECT_SHADERS} ${DEPENDENCY_SOURCES} ${PROJECT_RESOURCES})
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_CUDA_SOURCES} ${PROJECT_HEADERS} ${PROJECT_SHADERS} ${DEPENDENCY_SOURCES} ${PROJECT_RESOURCES})
+
+if(ENABLE_CUDA AND CUDAToolkit_FOUND)
+    add_executable(my_cuda_program main.cu)
+    target_link_libraries(${PROJECT_NAME} CUDA::cudart)
+endif()
+
 target_link_libraries(
     ${PROJECT_NAME}
     assimp

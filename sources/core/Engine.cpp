@@ -72,23 +72,22 @@ void Engine::Loop() {
             }
         }
 
-        // TODO: clean this ugly mess up
-
         // render the next frame
-        if (Renderer::getRenderingMethod() != RenderingMethod::Noop) {
-            Clear();
-        }
+        if (Renderer::RenderingMethod() == RenderingMethod::Noop)
+            continue;
+
+        Clear();
         Render();
 
-        if (Renderer::getRenderingMethod() == RenderingMethod::Noop) {
+        if (Renderer::RenderingMethod() == RenderingMethod::Noop) {
             std::this_thread::sleep_for(std::chrono::microseconds(16667));
         } else {
             SwapBuffers();
         }
 
         // stop rendering raytracing after first render
-        if (!Renderer::integrationEnabled() && Renderer::getRenderingMethod() != RenderingMethod::Rasterize) {
-            Renderer::setRenderingMethod(RenderingMethod::Noop);
+        if (!Renderer::raytracer.integrationEnabled() && Renderer::RenderingMethod() != RenderingMethod::Rasterize) {
+            Renderer::SetRenderingMethod(RenderingMethod::Noop);
         }
     }
 
@@ -111,9 +110,7 @@ Camera *Engine::GetCamera() { return camera.get(); }
 void Engine::AddObject(Object *o) { objects.push_back(o); }
 void Engine::RemoveObject(Object *o) { objects.erase(std::remove(objects.begin(), objects.end(), o), objects.end()); }
 
-void Engine::AddLight(Light *l) {
-    lights.push_back(l);
-}
+void Engine::AddLight(Light *l) { lights.push_back(l); }
 
 void Engine::AddParticleCluster(ParticleCluster *pc) { ParticleSystem::registerCluster(pc); }
 
