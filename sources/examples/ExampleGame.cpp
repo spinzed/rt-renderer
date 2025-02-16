@@ -1,20 +1,20 @@
 #include "examples/ExampleGame.h"
 
-#include "renderer/Animation.h"
-#include "renderer/Animator.h"
+#include "core/Animation.h"
+#include "core/Animator.h"
 
 // Local Headers
 #include "models/Mesh.h"
 #include "objects/MeshObject.h"
 #include "objects/PointCloud.h"
-#include "renderer/Behavior.h"
-#include "renderer/Camera.h"
+#include "core/Behavior.h"
+#include "core/Camera.h"
 #include "renderer/Cubemap.h"
-#include "renderer/Input.h"
+#include "core/Input.h"
 #include "renderer/Shader.h"
-#include "renderer/Transform.h"
-#include "renderer/UI.h"
-#include "renderer/WindowManager.h"
+#include "core/Transform.h"
+#include "core/UI.h"
+#include "core/WindowManager.h"
 #include "utils/ThreadPool.h"
 
 // System Headers
@@ -41,7 +41,7 @@
 void ExampleGame::KeyCallback(InputGlobalListenerData event) {
     if (event.action != GLFW_PRESS && event.action != GLFW_REPEAT)
         return;
-    Camera *camera = renderer->GetCamera();
+    Camera *camera = app->GetCamera();
 
     if (event.key == GLFW_KEY_H) {
         std::cout << "##################" << std::endl;
@@ -54,31 +54,31 @@ void ExampleGame::KeyCallback(InputGlobalListenerData event) {
 }
 
 void ExampleGame::cursorPositionCallback(WindowCursorEvent event) {
-    if (!renderer->manager->focused)
+    if (!app->manager->focused)
         return;
 
-    int dx = (float)renderer->manager->width / 2 - event.xpos;
-    int dy = (float)renderer->manager->height / 2 - event.ypos;
-    Camera *camera = renderer->GetCamera();
+    int dx = (float)app->manager->width / 2 - event.xpos;
+    int dy = (float)app->manager->height / 2 - event.ypos;
+    Camera *camera = app->GetCamera();
 
     camera->rotate(mouseSensitivity * dx, mouseSensitivity * dy);
     camera->recalculateMatrix();
 
-    renderer->manager->CenterCursor();
+    app->manager->CenterCursor();
 }
 
 int ExampleGame::run(std::string execDirectory) {
-    renderer = new Renderer(width, height, execDirectory);
+    app->Init(width, height, execDirectory);
 
     // renderer->input.addMouseListener([](MouseClickOptions _) {});
-    renderer->input.addKeyEventListener([&](auto a) { KeyCallback(a); });
-    renderer->manager->SetCursorHidden(true);
+    Input::addKeyEventListener([&](auto a) { KeyCallback(a); });
+    app->manager->SetCursorHidden(true);
 
-    renderer->manager->setCursorCallback([&](auto a) { cursorPositionCallback(a); });
-    renderer->manager->setWindowFocusCallback([&](auto data) {
+    app->manager->setCursorCallback([&](auto a) { cursorPositionCallback(a); });
+    app->manager->setWindowFocusCallback([&](auto data) {
         // FIXME: when clicking on window focused goes to 1, but it doesn't change the cursor pos
         if (data.focused) {
-            renderer->manager->CenterCursor();
+            app->manager->CenterCursor();
         }
     });
 
@@ -87,7 +87,7 @@ int ExampleGame::run(std::string execDirectory) {
 
     ThreadPool pool(5);
 
-    Camera *camera = renderer->GetCamera();
+    Camera *camera = app->GetCamera();
     camera->translate(glm::vec3(3.0f, 3.0f, -3.0f));
     camera->rotate(145, -30);
     camera->recalculateMatrix();
@@ -101,7 +101,7 @@ int ExampleGame::run(std::string execDirectory) {
         "kurt/space_ft.png",
         "kurt/space_bk.png",
     });
-    renderer->SetSkybox(&skybox);
+    app->SetSkybox(&skybox);
 
     float size = 25;
     float currentFirstPolje = 0;
@@ -116,7 +116,7 @@ int ExampleGame::run(std::string execDirectory) {
         polja[i] = new PointCloud();
         polja[i]->addBehavior(&ponasanja[i]);
         // ponasanja[i].generate(i * size, (i + 1) * size);
-        renderer->AddObject(polja[i]);
+        app->AddObject(polja[i]);
     }
 
     // player
@@ -405,7 +405,7 @@ int ExampleGame::run(std::string execDirectory) {
         if (freeCamera)
             return;
 
-        Transform *t = renderer->GetCamera();
+        Transform *t = app->GetCamera();
 
         // don't immediately tp if the initial sequence hasn't completed
         if (!cameraStatic || currentCameraOffset.x < newCameraOffset.x) {
@@ -416,9 +416,9 @@ int ExampleGame::run(std::string execDirectory) {
         t->pointAt(player->getTransform()->position(), TransformIdentity::up());
     };
     player.addBehavior(&playerBehavior);
-    renderer->AddObject(&player);
+    app->AddObject(&player);
 
-    renderer->input.addPerFrameListener([&](auto a) {
+    Input::addPerFrameListener([&](auto a) {
         if (!freeCamera)
             return;
 
@@ -456,12 +456,12 @@ int ExampleGame::run(std::string execDirectory) {
         }
     });
 
-    renderer->input.addPerFrameListener([&](auto a) {
+    Input::addPerFrameListener([&](auto a) {
         (void)a;
 
         if (Input::checkKeyEvent(GLFW_KEY_ESCAPE, GLFW_PRESS) ||
             Input::ControllerButtonPressed(XboxOneButtons::START)) {
-            renderer->SetShouldClose();
+            app->SetShouldClose();
         }
         if (Input::ControllerButtonPressed(XboxOneButtons::Y)) {
             resetGame();
@@ -470,11 +470,11 @@ int ExampleGame::run(std::string execDirectory) {
             setGamePaused(!gamePaused);
         }
         if (Input::ControllerButtonPressed(XboxOneButtons::B)) {
-            renderer->SetGUIEnabled(!renderer->guiEnabled);
+            app->SetGUIEnabled(!app->guiEnabled);
         }
     });
 
-    renderer->input.addKeyEventListener([&](InputGlobalListenerData event) {
+    Input::addKeyEventListener([&](InputGlobalListenerData event) {
         if (event.action != GLFW_PRESS)
             return;
         if (event.key == GLFW_KEY_R) {
@@ -488,9 +488,9 @@ int ExampleGame::run(std::string execDirectory) {
         }
     });
 
-    renderer->EnableVSync();
+    app->EnableVSync();
 
-    renderer->Loop();
+    app->Loop();
 
     return EXIT_SUCCESS;
 }

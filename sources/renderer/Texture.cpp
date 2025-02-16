@@ -1,6 +1,6 @@
 #include "renderer/Texture.h"
 
-#include "renderer/Loader.h"
+#include "core/Loader.h"
 #include "utils/GLDebug.h"
 
 #include <format>

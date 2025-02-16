@@ -1,10 +1,8 @@
 
-#include "renderer/Camera.h"
+#include "core/Camera.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include <iostream>
 
 Camera::Camera(int width, int height) {
     setSize(width, height);
@@ -16,7 +14,7 @@ void Camera::setSize(int width, int height) {
     constraints.farPlane = 1000.0f;
     constraints.angle = 70.0f;
     float w = constraints.nearPlane * tan(glm::radians(constraints.angle / 2));
-    float h = (float)height / width * w;
+    float h = ((float)height / width) * w;
     constraints.left = -w;
     constraints.right = w;
     constraints.bottom = -h;

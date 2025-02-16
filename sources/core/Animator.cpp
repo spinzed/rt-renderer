@@ -1,5 +1,5 @@
-#include <renderer/Animation.h>
-#include <renderer/Animator.h>
+#include <core/Animation.h>
+#include <core/Animator.h>
 
 #include <algorithm>
 #include <vector>

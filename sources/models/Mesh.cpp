@@ -1,7 +1,7 @@
 #include "models/Mesh.h"
 
 #include "glm/geometric.hpp"
-#include "renderer/Loader.h"
+#include "core/Loader.h"
 #include "renderer/Texture.h"
 #include "utils/mtr.h"
 

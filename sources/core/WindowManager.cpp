@@ -1,4 +1,4 @@
-#include "renderer/WindowManager.h"
+#include "core/WindowManager.h"
 #include "GLFW/glfw3.h"
 #include "utils/GLDebug.h"
 
@@ -159,3 +159,12 @@ double WindowManager::LimitFPS(bool shouldSleep) {
 int WindowManager::getFrameCount() { return totalFrameCount; }
 
 void WindowManager::PollEvents() { glfwPollEvents(); }
+
+bool WindowManager::WantsToClose() {
+    return glfwWindowShouldClose(window);
+}
+
+void WindowManager::Destroy() {
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}

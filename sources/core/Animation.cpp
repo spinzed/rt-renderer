@@ -1,4 +1,4 @@
-#include "renderer/Animation.h"
+#include "core/Animation.h"
 
 Animation::Animation(Curve *c, float duration) {
     curve = c;

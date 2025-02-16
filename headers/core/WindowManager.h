@@ -142,4 +142,8 @@ class WindowManager {
         width = this->width;
         height = this->height;
     }
+
+    bool WantsToClose();
+
+    void Destroy();
 };

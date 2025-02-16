@@ -1,6 +1,6 @@
 #pragma once
 
-#include <renderer/Animation.h>
+#include <core/Animation.h>
 
 #include <vector>
 

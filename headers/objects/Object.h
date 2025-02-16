@@ -2,9 +2,9 @@
 
 #include "models/Mesh.h"
 #include "renderables/Renderable.h"
-#include "renderer/Behavior.h"
+#include "core/Behavior.h"
 #include "renderer/Shader.h"
-#include "renderer/Transform.h"
+#include "core/Transform.h"
 
 #include <optional>
 #include <string>

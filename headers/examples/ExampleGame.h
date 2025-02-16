@@ -2,10 +2,12 @@
 
 #include <string>
 
-#include "renderer/Renderer.h"
+#include "core/Engine.h"
+#include "core/Input.h"
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "utils/PerlinNoise.h"
+#include "utils/Timer.h"
 #include "utils/mtr.h"
 
 class ExampleGame {
@@ -13,7 +15,7 @@ class ExampleGame {
     int width = 1000, height = 1000;
     float moveSensitivity = 10, sprintMultiplier = 5, mouseSensitivity = 0.15f;
 
-    Renderer *renderer;
+    Engine *app;
 
     PerlinNoise perlin;
 

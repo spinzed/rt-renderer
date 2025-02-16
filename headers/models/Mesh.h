@@ -1,7 +1,7 @@
 #pragma once
 
-#include "renderer/Loader.h"
-#include "renderer/Material.h"
+#include "core/Loader.h"
+#include "core/Material.h"
 #include "utils/Types.h"
 
 #include <GLFW/glfw3.h>

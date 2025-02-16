@@ -1,7 +1,8 @@
 #pragma once
 
-#include "renderer/Transform.h"
+#include "core/Transform.h"
 
+#include <functional>
 #include <vector>
 
 typedef struct {
@@ -14,22 +15,16 @@ typedef struct {
     float top;
 } CameraConstraints;
 
-class CameraObserver {
-  public:
-    virtual void onCameraChange() = 0;
-    virtual ~CameraObserver() {}
-};
-
 class Camera : public Transform {
   private:
     glm::mat4 projectionMatrix;
     glm::mat4 projectionViewMatrix;
 
-    std::vector<CameraObserver *> observers;
+    std::vector<std::function<void()>> observers;
 
     void notify() {
         for (auto o : observers) {
-            o->onCameraChange();
+            o();
         }
     };
 
@@ -46,7 +41,7 @@ class Camera : public Transform {
     glm::mat4 getProjectionViewMatrix();
     void recalculateMatrix();
 
-    void addChangeListener(CameraObserver *observer) { observers.push_back(observer); };
+    void addChangeListener(std::function<void()> observer) { observers.push_back(observer); };
 
     using Transform::rotate;
     void rotate(float degreesX, float degreesY);

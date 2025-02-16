@@ -1,20 +1,16 @@
 #pragma once
 
+#include "core/Camera.h"
 #include "models/Light.h"
 #include "objects/FullscreenTexture.h"
 #include "objects/Object.h"
-#include "renderer/Camera.h"
 #include "renderer/Framebuffer.h"
-#include "renderer/Input.h"
-#include "renderer/ParticleSystem.h"
-#include "renderer/WindowManager.h"
 #include "utils/ThreadPool.h"
 #include "utils/Timer.h"
 
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-#include <memory>
 #include <objects/Skybox.h>
 #include <optional>
 
@@ -39,113 +35,93 @@ enum RenderingMethod {
 
 typedef glm::vec3 (*RayStrategy)(glm::vec3, glm::vec3, int);
 
+struct RenderData {
+    std::vector<Object *> *objects;
+    std::vector<Light *> *lights;
+    Skybox *skybox;
+    Camera *camera;
+};
+
 // Nenjin
-class Renderer : CameraObserver {
+class Renderer {
   public:
-    Renderer(int width, int height, std::string execDirectory);
+    static void Init(int width, int height);
 
-    WindowManager *manager = nullptr;
-    Input input;
+    static void Render(RenderData data);
+    static void rasterize(RenderData data);
+    static void rayRender(RenderData data);
 
-    void SetResolution(int width, int height);
-    void SetSkybox(Cubemap *cb) { skybox = new Skybox(cb); };
+    inline static int vsync = 0;
+    static void EnableVSync();
+    static void DisableVSync();
+    static void SwapBuffers();
+    static void SetResolution(int width, int height);
 
-    void AddObject(Object *o);
-    void RemoveObject(Object *o);
-    void AddLight(Light *l);
-    void AddParticleCluster(ParticleCluster *pc);
-
-    Camera *GetCamera();
-    void onCameraChange(); // private?
-
-    void Loop();
-    void Render();
-    void Clear();
-    void SetShouldClose(); // marks the engine close after the current frame finishes rendering
-
-    int vsync = 0;
-    void EnableVSync();
-    void DisableVSync();
-    void SwapBuffers();
-
-    bool guiEnabled = false;
-    void SetGUIEnabled(bool);
-
-    // RT settings, TODO: move
-
-    void resetStats() {
+    inline static void resetStats() {
         renderCount = 0;
         totalTime = 0;
     }
 
-    unsigned int getDepth() { return depth; };
-    void setDepth(int depth) { this->depth = depth; };
+    inline static unsigned int getDepth() { return depth; };
+    inline static void setDepth(int d) { depth = d; };
 
-    unsigned int getRenderingMethod() { return method; };
-    void setRenderingMethod(RenderingMethod method) { this->method = method; };
+    inline static unsigned int getRenderingMethod() { return method; };
+    inline static void setRenderingMethod(RenderingMethod m) { method = m; };
 
-    unsigned int integrationEnabled() { return monteCarlo; }
-    void setIntegrationEnabled(bool enabled) { monteCarlo = enabled; }
+    inline static unsigned int integrationEnabled() { return monteCarlo; }
+    inline static void setIntegrationEnabled(bool enabled) { monteCarlo = enabled; }
 
-    float kSpecular() { return k_specular; }
-    void setKSpecular(float k_specular) { this->k_specular = k_specular; }
+    inline static float kSpecular() { return k_specular; }
+    inline static void setKSpecular(float k) { k_specular = k; }
 
-    float kRoughness() { return k_roughness; }
-    void setKRougness(float k_roughness) { this->k_roughness = k_roughness; }
+    inline static float kRoughness() { return k_roughness; }
+    inline static void setKRougness(float k) { k_roughness = k; }
 
-    void rasterize();
-    void rayRender();
+    static void line(RenderData data, glm::vec3 current, glm::vec3 dx, glm::vec3 dy, int i);
 
-    void line(glm::vec3 current, glm::vec3 dx, glm::vec3 dy, int i);
+    static glm::vec3 phong(Intersection &p, glm::vec3 diffuseColor, RenderData data);
+    static std::optional<Intersection> raycast(RenderData data, glm::vec3 origin, glm::vec3 direction, Object *&intersectedObject);
 
-    glm::vec3 phong(Intersection &p, glm::vec3 diffuseColor);
-    std::optional<Intersection> raycast(glm::vec3 origin, glm::vec3 direction, Object *&intersectedObject);
+    static glm::vec3 raycast(RenderData data, glm::vec3 origin, glm::vec3 direction);              // returns color
+    static glm::vec3 raytrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth);  // returns color
+    static glm::vec3 pathtrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth); // returns color
+    static void iscrtajRaster();
+    static void spremiRaster();
 
-    glm::vec3 raycast(glm::vec3 origin, glm::vec3 direction);              // returns color
-    glm::vec3 raytrace(glm::vec3 origin, glm::vec3 direction, int depth);  // returns color
-    glm::vec3 pathtrace(glm::vec3 origin, glm::vec3 direction, int depth); // returns color
-    void iscrtajRaster();
-    void spremiRaster();
+    inline static bool _cameraMatrixChanged = true;
 
   private:
-    std::vector<Object *> objects;
-    std::vector<Light *> lights;
-    std::vector<float> lightPositions;
-    std::vector<float> lightIntensities;
-    std::vector<float> lightColors;
+    inline static int _width;
+    inline static int _height;
+    inline static glm::vec3 _clearColor;
 
-    std::unique_ptr<Camera> camera;
-    Skybox *skybox = nullptr;
-    int _width;
-    int _height;
-    glm::vec3 _clearColor;
+    inline static Shader *lightMapShader;
 
-    bool _cameraMatrixChanged = true;
-    Shader *lightMapShader;
+    inline static unsigned int depth = 0;
+    inline static RenderingMethod method;
 
-    unsigned int depth = 0;
-    RenderingMethod method;
+    inline static unsigned int renderCount = 0;
+    inline static bool monteCarlo = false;
+    inline static float totalTime = 0;
 
-    unsigned int renderCount = 0;
-    bool monteCarlo = false;
-    float totalTime = 0;
+    inline static float k_specular = K_SPECULAR;
+    inline static float k_roughness = K_ROUGNESS;
 
-    float k_specular = K_SPECULAR;
-    float k_roughness = K_ROUGNESS;
+    inline static std::vector<Raster<float> *> rasteri;
+    inline static int currentRasterIndex = 0;
 
-    std::vector<Raster<float> *> rasteri;
-    int currentRasterIndex = 0;
+    inline static Texture *outputTexture = nullptr;
+    inline static FullscreenTexture *textureShower = nullptr;
+    inline static Framebuffer *depthFramebuffer = nullptr;
+    inline static Shader *rt = nullptr;
+    inline static PointLight *light = nullptr;
 
-    Texture *rasterTexture = nullptr;
-    FullscreenTexture *textureShower = nullptr;
-    Framebuffer *depthFramebuffer = nullptr;
-    Shader *rt = nullptr;
-    PointLight *light = nullptr;
+    inline static Timer t = Timer::start();
+    inline static ThreadPool *pool = nullptr;
 
-    Timer t = Timer::start();
-    ThreadPool *pool = nullptr;
+    inline static std::vector<float> lightPositions;
+    inline static std::vector<float> lightIntensities;
+    inline static std::vector<float> lightColors;
 
-    int cursorWasHidden;
-
-    void UpdateShader(Object *object, glm::mat4 projMat, glm::mat4 viewMat);
+    static void UpdateShader(Object *object, RenderData data);
 };

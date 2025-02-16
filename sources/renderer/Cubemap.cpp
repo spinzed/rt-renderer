@@ -1,7 +1,7 @@
 #include "renderer/Cubemap.h"
 #include "renderer/Texture.h"
 #include "utils/GLDebug.h"
-#include "renderer/Loader.h"
+#include "core/Loader.h"
 
 #include <stb_image.h>
 

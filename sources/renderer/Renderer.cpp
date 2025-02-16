@@ -1,14 +1,10 @@
 #include "renderer/Renderer.h"
 
+#include "core/ParticleSystem.h"
 #include "models/Mesh.h"
 #include "models/Raster.h"
-#include "renderer/Animator.h"
-#include "renderer/Input.h"
-#include "renderer/ParticleSystem.h"
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
-#include "renderer/UI.h"
-#include "renderer/WindowManager.h"
 #include "utils/GLDebug.h"
 #include "utils/ThreadPool.h"
 #include "utils/mtr.h"
@@ -29,8 +25,10 @@
 
 #define RENDER_SHADOWMAPS 1
 
-Renderer::Renderer(int width, int height, std::string execDirectory) {
-    manager = new WindowManager(width, height, 60, 1.0, "Renderer");
+void Renderer::Init(int width, int height) {
+    _width = width;
+    _height = height;
+
     setDepth(RAYTRACE_DEPTH);
     setRenderingMethod(Rasterize);
 
@@ -39,6 +37,7 @@ Renderer::Renderer(int width, int height, std::string execDirectory) {
     // OpenGL settings
     GLCheckError();
     glClearColor(_clearColor[0], _clearColor[1], _clearColor[2], 1);
+
     glEnable(GL_DEPTH_TEST); // z buffer
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
@@ -48,40 +47,12 @@ Renderer::Renderer(int width, int height, std::string execDirectory) {
     glEnable(GL_PROGRAM_POINT_SIZE); // point rendering
     GLCheckError();
 
-    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT); // debugging
     glDebugMessageCallback(debugCallback, nullptr);
 
-    // init subsystems
-    Shader::setBaseDirectory(execDirectory + "/shaders");
-    Loader::setPath(execDirectory + "/resources");
-    UI::Init(manager->window);
-
-    // input system settings
-    Input::init(manager->window);
-    Input::boundsGetter = [&](int w, int h) { manager->GetBounds(w, h); };
-    Input::addKeyEventListener([&](InputGlobalListenerData data) {
-        if (data.action == GLFW_PRESS && data.key == GLFW_KEY_RIGHT_SHIFT) {
-            SetGUIEnabled(!guiEnabled);
-        }
-    });
-    Input::addPerFrameListener([&](auto _) {
-        (void)_;
-        if (Input::ControllerButtonPressed(XboxOneButtons::L3)) {
-            SetGUIEnabled(!guiEnabled);
-        }
-    });
-
-    // window manager settings
-    SetResolution(width, height);
-    manager->SetResizeCallback([&](int width, int height) { SetResolution(width, height); });
-
-    // other core renderer stuff
-    camera = std::make_unique<Camera>(width, height);
-    camera->addChangeListener(this);
-
-    rasterTexture = new Texture(GL_TEXTURE_2D, width, height);
+    outputTexture = new Texture(GL_TEXTURE_2D, width, height);
     textureShower = new FullscreenTexture("tekstura", "texture"); // ili depthMapTexture
-    textureShower->setTexture(rasterTexture);
+    textureShower->setTexture(outputTexture);
 
     depthFramebuffer = new Framebuffer();
 
@@ -96,150 +67,43 @@ Renderer::Renderer(int width, int height, std::string execDirectory) {
     rt = Shader::LoadCompute("raytrace");
 }
 
-void Renderer::Loop() {
-    while (!glfwWindowShouldClose(manager->window)) {
-        float deltaTime = (float)manager->LimitFPS(false);
-
-        input.ClearControllerStates();
-        // ask undelying window manager to poll all queued events
-        manager->PollEvents();
-
-        // fire the subsystems
-        input.firePerFrame(deltaTime);
-        Animator::passTime(deltaTime);
-        ParticleSystem::passTime(deltaTime);
-
-        // run game logic - update the object every tick according to the custom behavior scripts
-        for (Object *o : objects) {
-            for (Behavior *behavior : o->behaviors) {
-                if (!behavior->initialized) {
-                    behavior->Init(o);
-                    behavior->initialized = true;
-                }
-                behavior->Update(o, deltaTime);
-            }
-            for (Object *child : o->children) {
-                for (Behavior *behavior : child->behaviors) {
-                    if (!behavior->initialized) {
-                        behavior->Init(child);
-                        behavior->initialized = true;
-                    }
-                    behavior->Update(child, deltaTime);
-                }
-            }
-        }
-
-        // TODO: move this to the app side in a key listener
-
-        // render the next frame
-        if (getRenderingMethod() != RenderingMethod::Noop) {
-            Clear();
-        }
-        Render();
-
-        if (getRenderingMethod() == RenderingMethod::Noop) {
-            std::this_thread::sleep_for(std::chrono::microseconds(16667));
-        } else {
-            SwapBuffers();
-        }
-
-        // stop rendering raytracing after first render
-        if (!integrationEnabled() && getRenderingMethod() != RenderingMethod::Rasterize) {
-            setRenderingMethod(RenderingMethod::Noop);
-        }
-    }
-
-    glfwDestroyWindow(manager->window);
-    glfwTerminate();
-}
-
-void Renderer::Clear() { glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); }
-
-void Renderer::SetShouldClose() { glfwSetWindowShouldClose(manager->window, true); }
-
-void Renderer::SetResolution(int width, int height) {
-    _width = width;
-    _height = height;
-    glViewport(0, 0, width, height);
-    if (rasterTexture != nullptr) {
-        rasterTexture->setSize(width, height);
-    }
-    for (Raster<float> *r : rasteri) {
-        r->resize(width, height);
-    }
-    if (camera != nullptr) {
-        camera->setSize(width, height);
-    }
-}
-
-Camera *Renderer::GetCamera() { return camera.get(); }
-
-void Renderer::AddObject(Object *o) { objects.push_back(o); }
-void Renderer::RemoveObject(Object *o) { objects.erase(std::remove(objects.begin(), objects.end(), o), objects.end()); }
-
-void Renderer::AddLight(Light *l) {
-    lights.push_back(l);
-
-    light = dynamic_cast<PointLight *>(l);
-    assert(light != nullptr);
-    depthFramebuffer->setDepthTexture(&light->cb); // enough to be ran only once
-}
-
-void Renderer::AddParticleCluster(ParticleCluster *pc) { ParticleSystem::registerCluster(pc); }
-
-void Renderer::Render() {
-    if (guiEnabled) {
-        UI::BuildUI();
-    }
+void Renderer::Render(RenderData data) {
     switch (method) {
     case Rasterize:
-        rasterize();
+        rasterize(data);
         break;
     case Raycast:
     case Raytrace:
     case Pathtrace:
-        rayRender();
+        rayRender(data);
         break;
     case Noop:
         break;
     default:
         assert(method);
     }
-    if (guiEnabled) {
-        UI::Render();
-    }
 }
 
-void Renderer::SetGUIEnabled(bool e) {
-    guiEnabled = e;
-    if (e) {
-        cursorWasHidden = e;
-        manager->SetCursorHidden(false);
-    } else {
-        manager->SetCursorHidden(cursorWasHidden);
-    }
-    manager->SetIgnoreMouseEvents(e);
-}
-
-void Renderer::line(glm::vec3 current, glm::vec3 dx, glm::vec3 dy, int i) {
-    glm::vec3 camPos = camera->position();
+void Renderer::line(RenderData data, glm::vec3 current, glm::vec3 dx, glm::vec3 dy, int i) {
     glm::vec3 boja, target;
     float offsetx, offsety;
+
+    glm::vec3 camPos = data.camera->position();
 
     for (int j = 0; j < _width; j++) {
         target = current;
         switch (method) {
         case Raycast:
-            boja = raycast(camPos, target - camPos);
+            boja = raycast(data, camPos, target - camPos);
             break;
         case Raytrace:
-            boja = raytrace(camPos, target - camPos, getDepth());
+            boja = raytrace(data, camPos, target - camPos, getDepth());
             break;
         case Pathtrace:
             offsetx = ((double)rand() / (RAND_MAX));
             offsety = ((double)rand() / (RAND_MAX));
             target = current + dx * offsetx + dy * offsety;
-            boja = pathtrace(camPos, target - camPos, getDepth());
+            boja = pathtrace(data, camPos, target - camPos, getDepth());
             break;
         default:
             std::runtime_error("unknown renderer type");
@@ -249,8 +113,9 @@ void Renderer::line(glm::vec3 current, glm::vec3 dx, glm::vec3 dy, int i) {
     }
 }
 
-void Renderer::rayRender() {
+void Renderer::rayRender(RenderData data) {
     t.reset();
+    Camera *camera = data.camera;
 
     glm::vec3 camPos = camera->position();
     CameraConstraints c = camera->constraints;
@@ -266,13 +131,15 @@ void Renderer::rayRender() {
 
 #if RAYTRACE_MULTICORE
     if (!pool)
-        pool = new ThreadPool(0);
+        pool = new ThreadPool();
 
     pool->setJobQueue(_height);
     for (int i = 0; i < _height; i++) {
         current = start + column * ((float)i / (_height - 1));
-        pool->enqueue(&Renderer::line, this, current, dx, dy, i);
+        // pool->enqueue(&Renderer::line, nullptr, current, dx, dy, i);
+        pool->enqueue([data, current, dx, dy, i] { line(data, current, dx, dy, i); });
     }
+
     pool->wait();
 #endif
 #if !RAYTRACE_MULTICORE
@@ -310,26 +177,21 @@ void Renderer::rayRender() {
     _cameraMatrixChanged = false;
 }
 
-void Renderer::rasterize() {
-    // glm::vec3 lightPos(-3, 3, 2);
-
-    // glm::mat4 lightProjection, lightView;
-    // glm::mat4 lightSpaceMatrix;
-    // float near_plane = 0.1f, far_plane = 50.0f;
-    // float size = 2.0f;
-    // lightProjection = glm::ortho(-size, size, -size, size, near_plane, far_plane);
-    // lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    // lightSpaceMatrix = lightProjection * lightView;
-
-    // inefficient, but will make do
+void Renderer::rasterize(RenderData data) {
+    // ugly, but will make do (for now)
     lightPositions.clear();
     lightIntensities.clear();
     lightColors.clear();
-    for (const auto &l : lights) {
+
+    for (const auto &l : *data.lights) {
         glm::vec3 pos = l->getTransform()->position();
         lightPositions.insert(lightPositions.end(), {pos[0], pos[1], pos[2]});
         lightIntensities.insert(lightIntensities.end(), {l->intensity[0], l->intensity[1], l->intensity[2]});
         lightColors.insert(lightColors.end(), {l->color[0], l->color[1], l->color[2]});
+
+        PointLight *light = dynamic_cast<PointLight *>(l);
+        assert(light != nullptr);
+        depthFramebuffer->setDepthTexture(&light->cb); // enough to be ran only once
     }
 
     if (light != nullptr) {
@@ -343,7 +205,7 @@ void Renderer::rasterize() {
     }
 
     // commit uncommited objects before rendering
-    for (Object *o : objects) {
+    for (Object *o : *data.objects) {
         if (o->uncommited)
             o->commit(true);
 
@@ -364,7 +226,7 @@ void Renderer::rasterize() {
     }
 
     // 1st pass - depth
-    for (Object *o : objects) {
+    for (Object *o : *data.objects) {
         if (o->mesh != nullptr && o->mesh->getPrimitiveType() == GL_TRIANGLES) {
             lightMapShader->setUniform(SHADER_MMATRIX, 1, o->getModelMatrix());
             o->render(lightMapShader);
@@ -379,33 +241,34 @@ void Renderer::rasterize() {
     depthFramebuffer->cleanDepth(_width, _height);
 
     // 2nd pass - scene with shadows
-    if (skybox) {
-        UpdateShader(skybox, camera->getProjectionMatrix(), camera->getViewMatrix());
-        skybox->render();
+    if (data.skybox) {
+        UpdateShader(data.skybox, data);
+        data.skybox->render();
     }
-    for (Object *o : objects) {
+    for (Object *o : *data.objects) {
         // TODO: remove updateShader and put it as the object method that recieves renderer state
         // and sets the uniform vars itself
-        UpdateShader(o, camera->getProjectionMatrix(), camera->getViewMatrix());
+        UpdateShader(o, data);
         o->render();
         for (Object *o2 : o->children) {
-            UpdateShader(o2, camera->getProjectionMatrix(), camera->getViewMatrix());
+            UpdateShader(o2, data);
             o2->render();
         }
     }
     for (ParticleCluster *pc : ParticleSystem::clusters) {
-        UpdateShader(pc, camera->getProjectionMatrix(), camera->getViewMatrix());
+        UpdateShader(pc, data);
         pc->render();
     }
 }
 
-void Renderer::UpdateShader(Object *object, glm::mat4 projMat, glm::mat4 viewMat) {
+void Renderer::UpdateShader(Object *object, RenderData data) {
     Shader *shader = object->shader;
     if (shader == nullptr)
         return;
 
-    glm::vec3 cameraPos = camera->position();
-    Transform viewTransform(viewMat);
+    glm::vec3 cameraPos = data.camera->position();
+    Transform viewTransform(data.camera->getViewMatrix());
+    glm::mat4 projMat = data.camera->getProjectionMatrix();
 
     shader->use();
 
@@ -438,7 +301,7 @@ void Renderer::UpdateShader(Object *object, glm::mat4 projMat, glm::mat4 viewMat
         shader->setUniform(SHADER_HAS_TEXTURES, m->texture > 0);
     }
 
-    shader->setTexture(SHADER_SHADOWMAP, 1, rasterTexture->id);
+    shader->setTexture(SHADER_SHADOWMAP, 1, outputTexture->id);
     shader->setUniform(SHADER_HAS_SHADOWMAP, RENDER_SHADOWMAPS);
 
     if (light) {
@@ -447,14 +310,12 @@ void Renderer::UpdateShader(Object *object, glm::mat4 projMat, glm::mat4 viewMat
     }
     shader->setUniform(SHADER_HAS_SHADOWMAPCUBE, light != nullptr && RENDER_SHADOWMAPS);
 
-    if (skybox != nullptr) {
-        skybox->cubemap->use(2);
+    if (data.skybox != nullptr) {
+        data.skybox->cubemap->use(2);
         shader->setUniform(SHADER_SKYBOX, 2);
     }
-    shader->setUniform(SHADER_HAS_SKYBOX, skybox != nullptr);
+    shader->setUniform(SHADER_HAS_SKYBOX, data.skybox != nullptr);
 }
-
-void Renderer::onCameraChange() { _cameraMatrixChanged = true; }
 
 glm::vec3 calculateLight(Light *l, const glm::vec3 &normal, const glm::vec3 shadingPoint, const glm::vec3 &cameraPos) {
     glm::vec3 lpos = l->getTransform()->position();
@@ -475,30 +336,31 @@ glm::vec3 calculateLight(Light *l, const glm::vec3 &normal, const glm::vec3 shad
     return l->color * (diffuseStrength + specularStrength) * l->intensity * i;
 }
 
-glm::vec3 Renderer::phong(Intersection &p, glm::vec3 diffuseColor) {
+glm::vec3 Renderer::phong(Intersection &p, glm::vec3 diffuseColor, RenderData data) {
     glm::vec3 light = diffuseColor;
 
-    if (lights.empty())
+    if (data.lights->empty())
         return light;
 
-    Light *l = lights[0];
+    Light *l = data.lights->at(0);
 
     Object *o = nullptr;
-    std::optional<Intersection> p2 = raycast(p.point, l->getTransform()->position() - p.point, o); // shadow ray
+    std::optional<Intersection> p2 = raycast(data, p.point, l->getTransform()->position() - p.point, o); // shadow ray
 
     if (!p2.has_value() || p2.value().t > 1) {
-        glm::vec3 c = calculateLight(l, p.normal, p.point, camera->position());
+        glm::vec3 c = calculateLight(l, p.normal, p.point, data.camera->position());
         light += c;
     }
 
     return light * p.color;
 }
 
-std::optional<Intersection> Renderer::raycast(glm::vec3 origin, glm::vec3 direction, Object *&intersectedObject) {
+std::optional<Intersection> Renderer::raycast(RenderData data, glm::vec3 origin, glm::vec3 direction,
+                                              Object *&intersectedObject) {
     Intersection intersect;
     bool found = false;
 
-    for (Object *o : objects) {
+    for (Object *o : *data.objects) {
         std::optional<Intersection> p = o->findIntersection(origin, direction);
         if (!p.has_value()) {
             continue;
@@ -515,20 +377,20 @@ std::optional<Intersection> Renderer::raycast(glm::vec3 origin, glm::vec3 direct
     return intersect;
 }
 
-glm::vec3 Renderer::raycast(glm::vec3 origin, glm::vec3 direction) {
+glm::vec3 Renderer::raycast(RenderData data, glm::vec3 origin, glm::vec3 direction) {
     // Object *intersectedObject = nullptr;
     // IntersectPoint intersect = raycast(origin, direction, intersectedObject);
     // return intersectedObject ? phong(intersect, glm::vec3(0.2, 0.2, 0.2)) : _clearColor;
-    return raytrace(origin, direction, 1);
+    return raytrace(data, origin, direction, 1);
 }
 
 int test = 1;
-glm::vec3 Renderer::raytrace(glm::vec3 origin, glm::vec3 direction, int depth) {
+glm::vec3 Renderer::raytrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth) {
     if (depth == 0)
         return glm::vec3(0);
 
     Object *object = nullptr;
-    std::optional<Intersection> intersection = raycast(origin, direction, object);
+    std::optional<Intersection> intersection = raycast(data, origin, direction, object);
     if (!intersection.has_value())
         return _clearColor;
 
@@ -536,12 +398,12 @@ glm::vec3 Renderer::raytrace(glm::vec3 origin, glm::vec3 direction, int depth) {
 
     glm::vec3 light = RAYTRACE_AMBIENT;
     glm::vec3 normal = p.normal;
-    glm::vec3 color = p.color * light + phong(p, glm::vec3(0));
+    glm::vec3 color = p.color * light + phong(p, glm::vec3(0), data);
 
     bool hasReflective = object->mesh->material && object->mesh->material->colorReflective != glm::vec3(0);
     glm::vec3 reflectiveMat = hasReflective ? object->mesh->material->colorReflective : glm::vec3(k_specular);
     if (reflectiveMat != glm::vec3(0) && depth > 1) {
-        glm::vec3 rayColor = raytrace(p.point, glm::reflect(direction, normal), depth - 1);
+        glm::vec3 rayColor = raytrace(data, p.point, glm::reflect(direction, normal), depth - 1);
         color = glm::lerp(color, reflectiveMat * rayColor, reflectiveMat);
     }
     bool hasTransmitive = object->mesh->material && object->mesh->material->colorTransmitive != glm::vec3(0);
@@ -549,18 +411,19 @@ glm::vec3 Renderer::raytrace(glm::vec3 origin, glm::vec3 direction, int depth) {
     if (transmitiveMat != glm::vec3(0) && depth > 1) {
         float eta = 1.0f;
         glm::vec3 refractedDir = glm::refract(direction, normal, eta);
-        color = glm::lerp(color, raytrace(p.point + 0.001f * refractedDir, refractedDir, depth - 1), transmitiveMat);
+        color =
+            glm::lerp(color, raytrace(data, p.point + 0.001f * refractedDir, refractedDir, depth - 1), transmitiveMat);
     }
 
     return color;
 }
 
-glm::vec3 Renderer::pathtrace(glm::vec3 origin, glm::vec3 direction, int depth) {
+glm::vec3 Renderer::pathtrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth) {
     if (depth == 0)
         return glm::vec3(0);
 
     Object *object = nullptr;
-    std::optional<Intersection> intersection = raycast(origin, direction, object);
+    std::optional<Intersection> intersection = raycast(data, origin, direction, object);
     if (!intersection.has_value())
         return _clearColor;
 
@@ -568,13 +431,13 @@ glm::vec3 Renderer::pathtrace(glm::vec3 origin, glm::vec3 direction, int depth) 
 
     glm::vec3 light = RAYTRACE_AMBIENT;
     glm::vec3 normal = p.normal;
-    glm::vec3 color = p.color * light + phong(p, glm::vec3(0));
+    glm::vec3 color = p.color * light + phong(p, glm::vec3(0), data);
 
     bool hasReflective = object->mesh->material && object->mesh->material->colorReflective != glm::vec3(0);
     glm::vec3 reflectiveMat = hasReflective ? object->mesh->material->colorReflective : glm::vec3(k_specular);
     if (reflectiveMat != glm::vec3(0) && depth > 1) {
         glm::vec3 randomDirection = glm::reflect(direction, normal + k_roughness * mtr::linearRandVec3(-0.5f, 0.5f));
-        glm::vec3 rayColor = pathtrace(p.point, randomDirection, depth - 1);
+        glm::vec3 rayColor = pathtrace(data, p.point, randomDirection, depth - 1);
         color = glm::lerp(color, reflectiveMat * rayColor, reflectiveMat);
     }
     bool hasTransmitive = object->mesh->material && object->mesh->material->colorTransmitive != glm::vec3(0);
@@ -582,7 +445,8 @@ glm::vec3 Renderer::pathtrace(glm::vec3 origin, glm::vec3 direction, int depth) 
     if (transmitiveMat != glm::vec3(0) && depth > 1) {
         float eta = 1.0f;
         glm::vec3 refractedDir = glm::refract(direction, normal + k_roughness * mtr::linearRandVec3(-0.5f, 0.5f), eta);
-        color = glm::lerp(color, raytrace(p.point + 0.001f * refractedDir, refractedDir, depth - 1), transmitiveMat);
+        color =
+            glm::lerp(color, raytrace(data, p.point + 0.001f * refractedDir, refractedDir, depth - 1), transmitiveMat);
     }
 
     return color;
@@ -599,14 +463,14 @@ void Renderer::spremiRaster() {
     glReadPixels(0, 0, _width, _height, GL_BGR, GL_UNSIGNED_BYTE, buffer);
 }
 
-void Renderer::EnableVSync() {
-    glfwSwapInterval(1);
-    vsync = 1;
+void Renderer::SetResolution(int width, int height) {
+    _width = width;
+    _height = height;
+    glViewport(0, 0, width, height);
+    if (outputTexture != nullptr) {
+        outputTexture->setSize(width, height);
+    }
+    for (Raster<float> *r : rasteri) {
+        r->resize(width, height);
+    }
 }
-
-void Renderer::DisableVSync() {
-    glfwSwapInterval(0);
-    vsync = 0;
-}
-
-void Renderer::SwapBuffers() { glfwSwapBuffers(manager->window); }
