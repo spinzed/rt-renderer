@@ -21,8 +21,29 @@ void Raytracer::Init(int width, int height) {
     }
 }
 
+#if ENABLE_CUDA
+extern "C" void launchAddKernel(int *a, int *b, int *c, int size);
+#endif
+
 void Raytracer::Render(RenderData data, FullscreenTexture *output) {
     assert(width > 0 && height > 0);
+
+#if ENABLE_CUDA
+    // cuda test
+    const int size = 5;
+    int a[size] = {1, 2, 3, 4, 5};
+    int b[size] = {10, 20, 30, 40, 50};
+    int res[size];
+
+    launchAddKernel(a, b, res, size);
+
+    std::cout << "Result: ";
+    for (int i = 0; i < size; i++) {
+        std::cout << res[i] << " ";
+    }
+    std::cout << std::endl;
+    // end cuda test
+#endif
 
     t.reset();
     Camera *camera = data.camera;

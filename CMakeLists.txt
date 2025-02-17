@@ -29,6 +29,9 @@ if(ENABLE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
     message(STATUS "CUDA enabled")
+    add_compile_definitions(ENABLE_CUDA=1)
+else()
+    add_compile_definitions(ENABLE_CUDA=0)
 endif()
 
 # Compiler-specific settings
