@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "core/Engine.h"
 #include "core/Input.h"
 #include "renderer/Shader.h"
@@ -9,6 +7,9 @@
 #include "utils/PerlinNoise.h"
 #include "utils/Timer.h"
 #include "utils/mtr.h"
+
+#include <string>
+#include <mutex>
 
 class ExampleGame {
   public:

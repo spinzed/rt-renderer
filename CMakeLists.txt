@@ -22,7 +22,7 @@ add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/assimp)
 
 # Optional CUDA support for the raytracer
-option(ENABLE_CUDA "Enable CUDA support" OFF)
+option(ENABLE_CUDA "Enable CUDA support" ON)
 
 if(ENABLE_CUDA)
     enable_language(CUDA)
@@ -75,16 +75,18 @@ file(GLOB_RECURSE PROJECT_RESOURCES resources/*)
 source_group("Headers" FILES ${PROJECT_HEADERS})
 source_group("Shaders" FILES ${PROJECT_SHADERS})
 source_group("Sources" FILES ${PROJECT_SOURCES})
+source_group("Cuda" FILES ${PROJECT_CUDA_SOURCES})
 source_group("Dependencies" FILES ${DEPENDENCY_SOURCES})
 source_group("Resources" FILES ${PROJECT_RESOURCES})
 set_source_files_properties(${PROJECT_RESOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 add_definitions(-DGLFW_INCLUDE_NONE -DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\" -DNOMINMAX)
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_CUDA_SOURCES} ${PROJECT_HEADERS} ${PROJECT_SHADERS} ${DEPENDENCY_SOURCES} ${PROJECT_RESOURCES})
 
 if(ENABLE_CUDA AND CUDAToolkit_FOUND)
-    add_executable(my_cuda_program main.cu)
+	add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_CUDA_SOURCES} ${PROJECT_HEADERS} ${PROJECT_SHADERS} ${DEPENDENCY_SOURCES} ${PROJECT_RESOURCES} ${PROJECT_CUDA_SOURCES})
     target_link_libraries(${PROJECT_NAME} CUDA::cudart)
+else()
+	add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_CUDA_SOURCES} ${PROJECT_HEADERS} ${PROJECT_SHADERS} ${DEPENDENCY_SOURCES} ${PROJECT_RESOURCES})
 endif()
 
 target_link_libraries(
