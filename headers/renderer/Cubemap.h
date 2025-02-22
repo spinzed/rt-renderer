@@ -8,11 +8,11 @@
 
 class Cubemap : public Texture {
   public:
-    Cubemap(int width, int height, bool isDepth);
+    Cubemap(int width, int height, int channels, bool isDepth);
 
     // use these instead of Texture::setData for setting cubemap data
     template <typename T> void setCubemapData(int side, Raster<T> *raster);
-    template <typename T> void setCubemapData(int side, int channels, T *data);
+    template <typename T> void setCubemapData(int side, T *data);
 
     static Cubemap Load(std::vector<std::string> faces);
     static Cubemap Load(std::string resourceName);

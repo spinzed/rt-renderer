@@ -7,6 +7,7 @@
 #endif
 
 #include <functional>
+#include <iostream>
 #include <string>
 
 struct WindowCursorEvent {
@@ -16,6 +17,12 @@ struct WindowCursorEvent {
 
 struct WindowFocusEvent {
     bool focused;
+};
+
+enum CursorMode {
+    NORMAL,
+    HIDDEN,
+    DISABLED,
 };
 
 class WindowManager {
@@ -64,9 +71,9 @@ class WindowManager {
     inline static std::function<void(WindowCursorEvent)> windowCursorCallback;
     static void windowCursorCallbackWrapper(GLFWwindow *window, double xpos, double ypos) {
         (void)window;
-        if (mouseEventsIgnored) {
+        if (mouseEventsIgnored)
             return;
-        }
+
         if (windowCursorCallback) {
             WindowCursorEvent event = {.xpos = xpos, .ypos = ypos};
             windowCursorCallback(event);
@@ -88,7 +95,7 @@ class WindowManager {
     GLFWwindow *window;
     int width;
     int height;
-    inline static bool focused = 0;
+    inline static bool focused = 1; // on windows, it is by default 0 and it doesn't update unless alt tab
 
     // Single parameter constructor - just set a desired framerate and let it go.
     // Note: No FPS reporting by default, although you can turn it on or off later with the setVerbose(true/false)
@@ -123,14 +130,44 @@ class WindowManager {
 
     inline static bool mouseEventsIgnored = false;
     void PollEvents();
-    void SetIgnoreMouseEvents(bool e) { mouseEventsIgnored = e;}
+    void SetIgnoreMouseEvents(bool e) { mouseEventsIgnored = e; }
+
+    void GetCursorPosition(double *x, double *y) { glfwGetCursorPos(window, x, y); }
 
     void SetCursorPosition(float width, float height) { glfwSetCursorPos(window, width, height); }
 
     void CenterCursor() { SetCursorPosition((float)width / 2, (float)height / 2); }
 
-    void SetCursorHidden(bool e) { glfwSetInputMode(window, GLFW_CURSOR, e ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL); }
-    bool IsCursorHidden() { return glfwGetInputMode(window, GLFW_CURSOR); }
+    void SetCursorMode(CursorMode mode) {
+        switch (mode) {
+        case CursorMode::NORMAL:
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            break;
+        case CursorMode::HIDDEN:
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            break;
+        case CursorMode::DISABLED:
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            break;
+        default:
+            std::cout << "unsuppored cursor mode" << std::endl;
+            break;
+        }
+    }
+
+    CursorMode CursorMode() {
+        switch (glfwGetInputMode(window, GLFW_CURSOR)) {
+        case GLFW_CURSOR_NORMAL:
+            return CursorMode::NORMAL;
+        case GLFW_CURSOR_HIDDEN:
+            return CursorMode::HIDDEN;
+        case GLFW_CURSOR_DISABLED:
+            return CursorMode::DISABLED;
+        default:
+            std::cout << "unsuppored glfw cursor mode" << std::endl;
+            return CursorMode::NORMAL;
+        }
+    }
 
     void SetResizeCallback(std::function<void(int, int)> l) { resizeCallback = l; }
 

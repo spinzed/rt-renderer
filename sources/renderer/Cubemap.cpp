@@ -5,11 +5,11 @@
 
 #include <stb_image.h>
 
-Cubemap::Cubemap(int width, int height, bool isDepth = false)
-    : Texture::Texture(GL_TEXTURE_CUBE_MAP, width, height, isDepth) {
+Cubemap::Cubemap(int width, int height, int channels = 3, bool isDepth = false)
+    : Texture::Texture(GL_TEXTURE_CUBE_MAP, width, height, channels, isDepth) {
     GLCheckError();
     for (int i = 0; i < 6; i++) {
-        setCubemapData<unsigned char>(i, 3, NULL);
+        setCubemapData<unsigned char>(i, NULL);
     }
     GLCheckError();
 }
@@ -35,7 +35,7 @@ Cubemap Cubemap::Load(std::vector<std::string> faces) {
         cb.use(0);
         if (i == 0)
             cb.setSize(width, height);
-        cb.setCubemapData(i, nrChannels, data);
+        cb.setCubemapData(i, data);
         Loader::freeResource(data);
         ++i;
     }
@@ -43,9 +43,13 @@ Cubemap Cubemap::Load(std::vector<std::string> faces) {
 }
 
 template <typename T> void Cubemap::setCubemapData(int side, Raster<T> *raster) {
-    setCubemapData(side, raster->channels, raster->get());
+    if (!raster)
+        return;
+
+    assert ((int) raster->channels == channels);
+    setCubemapData(side, raster->get());
 }
 
-template <typename T> void Cubemap::setCubemapData(int side, int channels, T *data) {
-    setTextureData(GL_TEXTURE_CUBE_MAP_POSITIVE_X + side, channels, data);
+template <typename T> void Cubemap::setCubemapData(int side, T *data) {
+    setTextureData(1, GL_TEXTURE_CUBE_MAP_POSITIVE_X + side, data);
 }

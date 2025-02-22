@@ -136,10 +136,10 @@ void Engine::Render() {
 void Engine::SetGUIEnabled(bool e) {
     guiEnabled = e;
     if (e) {
-        cursorWasHidden = e;
-        manager->SetCursorHidden(false);
+        savedCursorMode = manager->CursorMode();
+        manager->SetCursorMode(CursorMode::NORMAL);
     } else {
-        manager->SetCursorHidden(cursorWasHidden);
+        manager->SetCursorMode(savedCursorMode);
     }
     manager->SetIgnoreMouseEvents(e);
 }

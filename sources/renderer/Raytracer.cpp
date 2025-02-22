@@ -58,8 +58,6 @@ void Raytracer::Render(RenderData data, FullscreenTexture *output) {
     glm::vec3 column = -(c.top - c.bottom) * camera->up();
     glm::vec3 dy = column * (1.0f / height);
 
-    output->shader->use();
-
 #if RAYTRACE_MULTICORE
     if (!pool)
         pool = new ThreadPool();

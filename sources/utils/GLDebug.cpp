@@ -4,6 +4,7 @@
 #include <string>
 
 void glCheckError_(const char *file, int line) {
+    // glCheckFramebuffer_(file, line);
     GLenum err(glGetError());
     while (err != GL_NO_ERROR) {
         std::string error;
@@ -36,11 +37,13 @@ void glCheckFramebuffer_(const char *file, int line) {
     glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                           &depthAttachment);
     if (depthAttachment == GL_NONE) {
-        std::cerr << "Framebuffer attachment error (depth)" << file << ":" << line << std::endl;
+        std::cerr << "Framebuffer attachment error (depth) " << file << ":" << line << std::endl;
     }
 }
 
 void GLAPIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                               const GLchar *message, const void *userParam) {
-    printf("OpenGL Debug Message: %s\n", message);
+    if (severity != GL_DEBUG_SEVERITY_LOW) {
+        printf("OpenGL Debug Message: %s\n", message);
+    }
 }

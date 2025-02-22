@@ -126,19 +126,27 @@ void Shader::setUniform(int index, int val) const { glUniform1i(uniformPositions
 void Shader::setUniform(int index, float val) const { glUniform1f(uniformPositions[index], val); }
 
 void Shader::setUniform(int index, int size, float array[3]) const {
+    GLCheckError();
     glUniform3fv(uniformPositions[index], size, array);
+    GLCheckError();
 }
 
 void Shader::setUniform(int index, int size, glm::vec3 vector) const {
+    GLCheckError();
     glUniform3fv(uniformPositions[index], size, glm::value_ptr(vector));
+    GLCheckError();
 }
 
 void Shader::setUniform(int index, int size, std::vector<float> vector) const {
+    GLCheckError();
     glUniform3fv(uniformPositions[index], size, vector.data());
+    GLCheckError();
 }
 
 void Shader::setUniform(int index, int size, glm::mat4 matrix) const {
+    GLCheckError();
     glUniformMatrix4fv(uniformPositions[index], size, GL_FALSE, glm::value_ptr(matrix));
+    GLCheckError();
 }
 
 // void Shader::setTexture(int textureNum, Texture<std::any> *texture) {
@@ -147,19 +155,25 @@ void Shader::setUniform(int index, int size, glm::mat4 matrix) const {
 // }
 
 void Shader::setTexture(int uniform, int textureNum, int textureID) {
+    GLCheckError();
     glActiveTexture(GL_TEXTURE0 + textureNum);
     glBindTexture(GL_TEXTURE_2D, textureID);
     setUniform(uniform, textureNum);
+    GLCheckError();
 }
 
 void Shader::setCubemap(int uniform, int textureNum, int textureID) {
+    GLCheckError();
     glActiveTexture(GL_TEXTURE0 + textureNum);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
     setUniform(uniform, textureNum);
+    GLCheckError();
 }
 
 void Shader::compute(int width, int height) {
+    GLCheckError();
     use();
     glDispatchCompute(width / 8 + 1, height / 4 + 1, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
+    GLCheckError();
 }

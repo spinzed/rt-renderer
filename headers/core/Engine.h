@@ -46,5 +46,5 @@ class Engine {
     inline static Skybox *skybox = nullptr;
     inline static std::shared_ptr<Camera> camera;
 
-    inline static int cursorWasHidden;
+    inline static CursorMode savedCursorMode;
 };

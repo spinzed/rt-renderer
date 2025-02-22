@@ -39,7 +39,7 @@ class PointLight : public Light {
     float farPlane;
 
     PointLight(glm::vec3 position, glm::vec3 intensity, glm::vec3 color, float range = 10.0f)
-        : Light(position, intensity, color , range), cb(1024, 1024, true) {
+        : Light(position, intensity, color , range), cb(1024, 1024, 3, true) {
         farPlane = range;
 
         t.addListener(std::bind(&PointLight::calculateMatrices, this));

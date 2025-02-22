@@ -29,9 +29,6 @@ class Renderer {
     static void Render(RenderData data);
 
     inline static int vsync = 0;
-    static void EnableVSync();
-    static void DisableVSync();
-    static void SwapBuffers();
     static void SetResolution(int width, int height);
     
     inline static enum RenderingMethod RenderingMethod() { return method; };

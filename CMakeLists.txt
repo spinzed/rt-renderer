@@ -12,7 +12,6 @@ option(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
 option(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
 set(ASSIMP_BUILD_OBJ_EXPORTER TRUE)
 set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
-set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(GLFW_BUILD_X11 TRUE)
@@ -37,6 +36,9 @@ endif()
 # Compiler-specific settings
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /std:c++20 /permissive-")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")  # /Od disables optimizations in Debug
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Zi") # /O2 for optimization in Release, /Zi for debug info
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "/DEBUG /OPT:REF /OPT:ICF")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type -Wall -Wextra -Wpedantic -std=c++20")
     if(NOT WIN32)

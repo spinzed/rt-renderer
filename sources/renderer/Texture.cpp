@@ -14,10 +14,12 @@ std::unordered_map<int, std::vector<int>> fullFormatMatrix = {
     {GL_FLOAT, {-1, GL_RED, -1, GL_RGB32F, GL_RGBA32F}},
 };
 
-Texture::Texture(int glType, int width, int height, bool isDepth, int channels) {
+Texture::Texture(int glType, int width, int height, int channels, bool isDepth) {
+    assert(channels == 1 || channels == 3 || channels == 4);
+
     this->glType = glType;
-    this->isDepth = isDepth;
     this->channels = channels;
+    this->isDepth = isDepth;
 
     GLCheckError();
     glGenTextures(1, &id);
@@ -65,8 +67,10 @@ void Texture::setSize(int width, int height) {
 }
 
 void Texture::use(int textureID) {
+    GLCheckError();
     glActiveTexture(GL_TEXTURE0 + textureID);
     glBindTexture(glType, id);
+    GLCheckError();
 }
 
 Texture *Texture::Load(std::string resourcePath) {
@@ -76,7 +80,7 @@ Texture *Texture::Load(std::string resourcePath) {
     Texture *tx = new Texture(GL_TEXTURE_2D, width, height);
     assert(tx != nullptr);
 
-    tx->setData(nrChannels, data);
+    tx->setData(data);
     Loader::freeResource(data);
 
     return tx;

@@ -72,7 +72,7 @@ int ExampleGame::run(std::string execDirectory) {
 
     // renderer->input.addMouseListener([](MouseClickOptions _) {});
     Input::addKeyEventListener([&](auto a) { KeyCallback(a); });
-    app->manager->SetCursorHidden(true);
+    app->manager->SetCursorMode(CursorMode::DISABLED);
 
     app->manager->setCursorCallback([&](auto a) { cursorPositionCallback(a); });
     app->manager->setWindowFocusCallback([&](auto data) {

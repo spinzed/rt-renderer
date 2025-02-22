@@ -29,6 +29,11 @@ void Renderer::Init(int width, int height) {
 
     // OpenGL settings
     GLCheckError();
+
+    glEnable(GL_DEBUG_OUTPUT); // debugging
+    glDebugMessageCallback(debugCallback, nullptr);
+
+    GLCheckError();
     glClearColor(_clearColor[0], _clearColor[1], _clearColor[2], 1);
 
     glEnable(GL_DEPTH_TEST); // z buffer
@@ -38,16 +43,14 @@ void Renderer::Init(int width, int height) {
     glEnable(GL_CULL_FACE); // culling
 
     glEnable(GL_PROGRAM_POINT_SIZE); // point rendering
+
     GLCheckError();
 
-    glEnable(GL_DEBUG_OUTPUT); // debugging
-    glDebugMessageCallback(debugCallback, nullptr);
-
-    outputTexture = new Texture(GL_TEXTURE_2D, width, height);    // for RT renders
-    textureShower = new FullscreenTexture("tekstura", "texture"); // ili depthMapTexture
+    outputTexture = new Texture(GL_TEXTURE_2D, width, height); // for RT renders
+    textureShower = new FullscreenTexture("tekstura", "texture");
     textureShower->setTexture(outputTexture);
 
-    depthFramebuffer = new Framebuffer();
+    // depthFramebuffer = new Framebuffer();
 
     lightMapShader = Shader::Load("pointLight");
     rt = Shader::LoadCompute("raytrace");
@@ -125,11 +128,13 @@ void Renderer::rasterize(RenderData data) {
     // 1st pass - depth
     for (Object *o : *data.objects) {
         if (o->mesh != nullptr && o->mesh->getPrimitiveType() == GL_TRIANGLES) {
-            lightMapShader->setUniform(SHADER_MMATRIX, 1, o->getModelMatrix());
+            lightMapShader->use();
+            lightMapShader->setMatrix("mMatrix", o->getModelMatrix());
             o->render(lightMapShader);
         }
         for (Object *child : o->children) {
-            if (o->mesh != nullptr && child->mesh->getPrimitiveType() == GL_TRIANGLES) {
+            if (child->mesh != nullptr && child->mesh->getPrimitiveType() == GL_TRIANGLES) {
+                lightMapShader->use();
                 lightMapShader->setUniform(SHADER_MMATRIX, 1, child->getModelMatrix());
                 child->render(lightMapShader);
             }
@@ -193,24 +198,24 @@ void Renderer::UpdateShader(Object *object, RenderData data) {
         shader->setUniform(SHADER_MATERIAL_COLOR_EMISSIVE, 1, m->colorEmissive);
 
         if (m->texture > 0) {
-            shader->setTexture(SHADER_TEXTURE, 0, m->texture);
+            shader->setTexture(SHADER_TEXTURE, 3, m->texture);
         }
         shader->setUniform(SHADER_HAS_TEXTURES, m->texture > 0);
     }
 
-    shader->setTexture(SHADER_SHADOWMAP, 1, outputTexture->id);
+    shader->setTexture(SHADER_SHADOWMAP, RENDER_SHADOWMAPS ? 4 : 0, outputTexture->id);
     shader->setUniform(SHADER_HAS_SHADOWMAP, RENDER_SHADOWMAPS);
 
     if (light) {
-        light->cb.use(3);
-        shader->setUniform(SHADER_SHADOWMAPCUBE, 3);
+        light->cb.use(5);
     }
+    shader->setUniform(SHADER_SHADOWMAPCUBE, light != nullptr && RENDER_SHADOWMAPS ? 5 : 1);
     shader->setUniform(SHADER_HAS_SHADOWMAPCUBE, light != nullptr && RENDER_SHADOWMAPS);
 
     if (data.skybox != nullptr) {
         data.skybox->cubemap->use(2);
-        shader->setUniform(SHADER_SKYBOX, 2);
     }
+    shader->setUniform(SHADER_SKYBOX, data.skybox ? 2 : 1);
     shader->setUniform(SHADER_HAS_SKYBOX, data.skybox != nullptr);
 }
 

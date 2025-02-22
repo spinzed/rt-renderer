@@ -31,13 +31,13 @@ class Texture {
     GLuint id;
     int glType;
 
-    Texture(int glType, int width, int height, bool isDepth = false, int channel = 3);
+    Texture(int glType, int width, int height, int channel = 3, bool isDepth = false);
 
     void use(int textureID);
     void setSize(int width, int height);
 
     template <typename T> void setData(Raster<T> *raster);
-    template <typename T> void setData(int channels, T *data);
+    template <typename T> void setData(T *data);
     template <typename T> void getData(std::vector<T> &data);
 
     void setStorage(unsigned mask);
@@ -49,7 +49,8 @@ class Texture {
     int height;
 
   protected:
-    template <typename T> void setTextureData(int glTextureType, int channels, T *data);
+    // also accepts type so it can also be used for setting cubemap sides
+    template <typename T> void setTextureData(int position, int glTextureType, T *data);
     int channels = -1;
 
     void generateMipmaps() {
@@ -62,33 +63,35 @@ class Texture {
     bool isDepth = false;
 };
 
-template <typename T> void Texture::setData(Raster<T> *raster) { setData(raster->channels, raster->get()); }
+template <typename T> void Texture::setData(Raster<T> *raster) {
+    if (!raster)
+        return;
 
-template <typename T> void Texture::setData(int channels, T *data) {
-    setTextureData(glType, channels, data);
+    assert((int) raster->channels == channels);
+    setData(raster->get());
+}
+
+template <typename T> void Texture::setData(T *data) {
+    setTextureData(0, glType, data);
     generateMipmaps();
 }
 
-template <typename T> void Texture::setTextureData(int glTextureType, int channels, T *data) {
-    assert(channels == 1 || channels == 3 || channels == 4);
-
+// 0 is reserved for temporary texture2d and 1 for cubemap
+template <typename T> void Texture::setTextureData(int position, int glTextureType, T *data) {
     if (glTextureType == GL_TEXTURE_CUBE_MAP)
         return;
 
-    use(0);
-    this->channels = channels;
+    use(position);
     int glType = GLtype<T>::value;
     int pictureFormat = isDepth ? GL_DEPTH_COMPONENT : formatMap[channels];
     int fullPictureFormat = isDepth ? GL_DEPTH_COMPONENT : fullFormatMatrix[glType][channels];
 
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     GLCheckError();
     glTexImage2D(glTextureType, 0, fullPictureFormat, width, height, 0, pictureFormat, glType, (void *)data);
     GLCheckError();
 }
 
 template <typename T> void Texture::getData(std::vector<T> &data) {
-    assert(channels != -1);
     glBindTexture(GL_TEXTURE_2D, id);
 
     // Create a buffer to hold the data

@@ -78,26 +78,38 @@ class Shader {
     }
 
     void setInt(std::string s, int i) {
+        GLCheckError();
         GLint location = glGetUniformLocation(ID, s.c_str());
         glUniform1i(location, i);
         GLCheckError();
     }
 
     void setVectorInt(std::string s, glm::vec<2, int> vector) {
+        GLCheckError();
         GLint location = glGetUniformLocation(ID, s.c_str());
         glUniform3iv(location, 1, glm::value_ptr(vector));
         GLCheckError();
     }
 
     void setVector(std::string s, glm::vec3 vector) {
+        GLCheckError();
         GLint location = glGetUniformLocation(ID, s.c_str());
         glUniform3fv(location, 1, glm::value_ptr(vector));
         GLCheckError();
     }
 
     void setVectors(std::string s, std::vector<glm::vec3> vectors) {
+        GLCheckError();
         GLint location = glGetUniformLocation(ID, s.c_str());
         glUniform3fv(location, vectors.size(), glm::value_ptr(vectors[0]));
+        GLCheckError();
+    }
+
+    void setMatrix(std::string s, glm::mat4 matrix) {
+        GLCheckError();
+        GLint location = glGetUniformLocation(ID, s.c_str());
+        GLCheckError();
+        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
         GLCheckError();
     }
 
