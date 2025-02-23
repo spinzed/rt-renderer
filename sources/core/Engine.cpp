@@ -72,18 +72,15 @@ void Engine::Loop() {
             }
         }
 
-        // render the next frame
-        if (Renderer::RenderingMethod() == RenderingMethod::Noop)
+        // wait a bit to prevent cpu choke and render the next frame
+        if (Renderer::RenderingMethod() == RenderingMethod::Noop) {
+            std::this_thread::sleep_for(std::chrono::microseconds(16667));
             continue;
+        }
 
         Clear();
         Render();
-
-        if (Renderer::RenderingMethod() == RenderingMethod::Noop) {
-            std::this_thread::sleep_for(std::chrono::microseconds(16667));
-        } else {
-            SwapBuffers();
-        }
+        SwapBuffers();
 
         // stop rendering raytracing after first render
         if (!Renderer::raytracer.integrationEnabled() && Renderer::RenderingMethod() != RenderingMethod::Rasterize) {

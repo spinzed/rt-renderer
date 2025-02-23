@@ -1,25 +1,55 @@
+#include "renderer/Raytracer.cuh"
+
 #include <cuda_runtime.h>
 #include <iostream>
 
-__global__ void addKernel(int* a, int* b, int* c) {
-    int idx = threadIdx.x;
-    c[idx] = a[idx] + b[idx];
+__constant__ int cwidth;
+__constant__ int cheight;
+
+__global__ void calculatePixel(float *c) {
+    int x = blockIdx.x;
+    int y = threadIdx.x;
+
+    if (x < cwidth && y < cheight) {
+        c[3 * (y * cwidth + x)] = (float)x / 1024;
+        c[3 * (y * cwidth + x) + 1] = (float)y / 1024;
+        c[3 * (y * cwidth + x) + 2] = 0;
+    }
 }
 
-extern "C" void launchAddKernel(int* a, int* b, int* c, int size) {
-    int *d_a, *d_b, *d_c;
-    cudaMalloc(&d_a, size * sizeof(int));
-    cudaMalloc(&d_b, size * sizeof(int));
-    cudaMalloc(&d_c, size * sizeof(int));
+namespace CudaRT {
 
-    cudaMemcpy(d_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
+void render(int width, int height, RenderData data, float *output) {
+    float *rendered;
+    int rasterSize = width * height * 3 * sizeof(float);
+    cudaMalloc(&rendered, rasterSize);
 
-    addKernel<<<1, size>>>(d_a, d_b, d_c);
+    cudaMemcpyToSymbol(cwidth, &width, sizeof(int), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(cheight, &height, sizeof(int), 0, cudaMemcpyHostToDevice);
 
-    cudaMemcpy(c, d_c, size * sizeof(int), cudaMemcpyDeviceToHost);
+    // render logic
+    Camera *camera = data.camera;
 
-    cudaFree(d_a);
-    cudaFree(d_b);
-    cudaFree(d_c);
+    glm::vec3 camPos = camera->position();
+    CameraConstraints c = camera->constraints;
+
+    glm::vec3 start = camPos + c.nearPlane * camera->forward() + c.top * camera->up() + c.left * camera->right();
+    glm::vec3 current = start;
+    glm::vec3 row = (c.right - c.left) * camera->right();
+    glm::vec3 dx = row * (1.0f / width);
+    glm::vec3 column = -(c.top - c.bottom) * camera->up();
+    glm::vec3 dy = column * (1.0f / height);
+
+    int grid = 1024;
+    int block = 1024;
+
+    calculatePixel<<<grid, block>>>(rendered);
+    cudaDeviceSynchronize();
+    std::cout << "hewwo" << std::endl;
+
+    cudaMemcpy(output, rendered, rasterSize, cudaMemcpyDeviceToHost);
+
+    cudaFree(rendered);
 }
+
+} // namespace CudaRT

@@ -45,7 +45,7 @@ template <typename T> void Raster<T>::resize(int width, int height) {
 template <typename T> void Raster<T>::set(int width, int height) {
     this->width = width;
     this->height = height;
-    raster = static_cast<float *>(calloc(width * height * 3, sizeof(float)));
+    raster = static_cast<float *>(calloc(width * height * channels, sizeof(float)));
 }
 
 template <typename T> float *Raster<T>::get() { return raster; }

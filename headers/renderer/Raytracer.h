@@ -61,10 +61,19 @@ class Raytracer {
     ThreadPool *pool = nullptr;
 
     inline static unsigned int renderCount = 0;
-    inline static float totalTime = 0;
+    inline static double totalTime = 0;
 
     inline static std::vector<Raster<float> *> rasteri;
     inline static int currentRasterIndex = 0;
 
     glm::vec3 clearColor;
+
+    void SoftwareRender(RenderData data);
+    void HardwareRender(RenderData data);
+
+    void MonteCarlo();
+
+    Raster<float>* CurrentRaster();
+    Raster<float>* InactiveRaster();
+    void SwitchRaster();
 };

@@ -1,6 +1,7 @@
 #include "renderer/Raytracer.h"
 
 #include "objects/FullscreenTexture.h"
+#include "renderer/Raytracer.cuh"
 #include "utils/mtr.h"
 
 #include <glm/glm.hpp>
@@ -9,9 +10,9 @@
 
 #include <iostream>
 
-void Raytracer::Init(int width, int height) {
-    this->width = width;
-    this->height = height;
+void Raytracer::Init(int w, int h) {
+    width = w;
+    height = h;
 
     int RASTER_NUM = 2;
 
@@ -21,31 +22,49 @@ void Raytracer::Init(int width, int height) {
     }
 }
 
-#if ENABLE_CUDA
-extern "C" void launchAddKernel(int *a, int *b, int *c, int size);
-#endif
-
 void Raytracer::Render(RenderData data, FullscreenTexture *output) {
     assert(width > 0 && height > 0);
 
+    t.reset();
+
 #if ENABLE_CUDA
-    // cuda test
-    const int size = 5;
-    int a[size] = {1, 2, 3, 4, 5};
-    int b[size] = {10, 20, 30, 40, 50};
-    int res[size];
-
-    launchAddKernel(a, b, res, size);
-
-    std::cout << "Result: ";
-    for (int i = 0; i < size; i++) {
-        std::cout << res[i] << " ";
-    }
-    std::cout << std::endl;
-    // end cuda test
+    HardwareRender(data);
+#else
+    SoftwareRender(data);
 #endif
 
-    t.reset();
+    std::cout << "Render done, number of renders: " << ++renderCount << std::endl;
+    t.printElapsed("Render Time: ");
+    totalTime += t.elapsed();
+    std::cout << "Total Render Time: " << totalTime << "ms" << std::endl;
+
+    if (monteCarlo) {
+        MonteCarlo();
+        t.printElapsed("Monte Carlo: ");
+    }
+
+    output->loadRaster(CurrentRaster());
+    SwitchRaster();
+}
+
+// #if ENABLE_CUDA
+// struct RTObject;
+//
+// void launchAddKernel(int *a, int *b, int *c, int size);
+// #endif
+
+void Raytracer::HardwareRender(RenderData data) {
+#if ENABLE_CUDA
+
+    CudaRT::render(width, height, data, CurrentRaster()->get());
+
+    // end cuda test
+
+#endif
+}
+
+// deprecated
+void Raytracer::SoftwareRender(RenderData data) {
     Camera *camera = data.camera;
 
     glm::vec3 camPos = camera->position();
@@ -76,31 +95,19 @@ void Raytracer::Render(RenderData data, FullscreenTexture *output) {
         line(current, dx, dy, i);
     }
 #endif
+}
 
-    // rt->compute(width, height);
-    // textureShower->setTexture(tx);
-    // textureShower->render();
-
-    std::cout << "Render done, number of renders: " << ++renderCount << std::endl;
-    t.printElapsed("Time elapsed since last render: ");
-    totalTime += t.elapsed();
-    std::cout << "Total elapsed time rendering:   " << totalTime << "ms" << std::endl;
-
-    if (monteCarlo) {
-        Raster<float> *current = rasteri[currentRasterIndex];
-        Raster<float> *other = rasteri[!currentRasterIndex];
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                glm::vec3 c1 = current->getFragmentColor(j, i);
-                glm::vec3 c2 = other->getFragmentColor(j, i);
-                glm::vec3 color = (c1 + (c2 * (float)(renderCount - 1))) * (1.0f / renderCount);
-                rasteri[currentRasterIndex]->setFragmentColor(j, i, color);
-            }
+void Raytracer::MonteCarlo() {
+    Raster<float> *current = rasteri[currentRasterIndex];
+    Raster<float> *other = rasteri[!currentRasterIndex];
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            glm::vec3 c1 = current->getFragmentColor(j, i);
+            glm::vec3 c2 = other->getFragmentColor(j, i);
+            glm::vec3 color = (c1 + (c2 * (float)(renderCount - 1))) * (1.0f / renderCount);
+            rasteri[currentRasterIndex]->setFragmentColor(j, i, color);
         }
     }
-
-    currentRasterIndex = !currentRasterIndex;
-    output->loadRaster(rasteri[!currentRasterIndex]);
 }
 
 void Raytracer::SetResolution(int width, int height) {
@@ -266,3 +273,7 @@ void Raytracer::resetStats() {
     renderCount = 0;
     totalTime = 0;
 }
+
+Raster<float> *Raytracer::CurrentRaster() { return rasteri[currentRasterIndex]; }
+Raster<float> *Raytracer::InactiveRaster() { return rasteri[!currentRasterIndex]; }
+void Raytracer::SwitchRaster() { currentRasterIndex = !currentRasterIndex; }
