@@ -12,7 +12,7 @@
 
 class Object : public Renderable {
   public:
-    Object(std::string name);
+    Object(std::string name, std::string type = "container");
     virtual ~Object() {};
 
     virtual std::optional<Intersection> findIntersection(glm::vec3 origin, glm::vec3 direction) {
@@ -26,6 +26,7 @@ class Object : public Renderable {
 
     glm::mat4 getModelMatrix();
     Transform *getTransform();
+    Transform getFullTransform(); // dynamically constructed
 
     void addBehavior(Behavior *b);
     void removeBehavior(Behavior *b);
@@ -40,10 +41,9 @@ class Object : public Renderable {
 
     void commit(bool force = false);
 
-    static Object *Load(std::string resourceName, std::string objectName);
-
     std::string name;
     std::string tag;
+    std::string type;
     unsigned char layerMask = 0b0000000;
     bool uncommited = false;
 

@@ -7,7 +7,7 @@
 
 #define SUBDIVISIONS 100
 
-Bezier::Bezier() : Object("bezier") {
+Bezier::Bezier() : Object("bezier", "line") {
     shader = Shader::Load("line");
 
     approxCurve = std::make_shared<PolyLine>();

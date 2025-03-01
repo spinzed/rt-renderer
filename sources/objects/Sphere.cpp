@@ -20,6 +20,7 @@ Sphere::Sphere(std::string name, glm::vec3 center, float radius)
 
 void Sphere::init(std::string name, glm::vec3 center, float radius, glm::vec3 color) {
     this->name = name;
+    this->type = "sphere";
     this->center = center;
     this->radius = radius;
     this->color = color;

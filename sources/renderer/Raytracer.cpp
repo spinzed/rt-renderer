@@ -110,7 +110,9 @@ void Raytracer::MonteCarlo() {
     }
 }
 
-void Raytracer::SetResolution(int width, int height) {
+void Raytracer::SetResolution(int w, int h) {
+    width = w;
+    height = h;
     for (Raster<float> *r : rasteri) {
         r->resize(width, height);
     }
@@ -202,6 +204,10 @@ glm::vec3 Raytracer::raycast(RenderData data, glm::vec3 origin, glm::vec3 direct
 }
 
 int test = 1;
+glm::vec3 Raytracer::pathtrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth) {
+    return raytrace(data, origin, direction, depth);
+}
+
 glm::vec3 Raytracer::raytrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth) {
     if (depth == 0)
         return glm::vec3(0);
@@ -219,46 +225,16 @@ glm::vec3 Raytracer::raytrace(RenderData data, glm::vec3 origin, glm::vec3 direc
 
     bool hasReflective = object->mesh->material && object->mesh->material->colorReflective != glm::vec3(0);
     glm::vec3 reflectiveMat = hasReflective ? object->mesh->material->colorReflective : glm::vec3(k_specular);
-    if (reflectiveMat != glm::vec3(0) && depth > 1) {
-        glm::vec3 rayColor = raytrace(data, p.point, glm::reflect(direction, normal), depth - 1);
-        color = glm::lerp(color, reflectiveMat * rayColor, reflectiveMat);
-    }
-    bool hasTransmitive = object->mesh->material && object->mesh->material->colorTransmitive != glm::vec3(0);
-    glm::vec3 transmitiveMat = hasTransmitive ? object->mesh->material->colorTransmitive : glm::vec3(k_transmit);
-    if (transmitiveMat != glm::vec3(0) && depth > 1) {
-        float eta = 1.0f;
-        glm::vec3 refractedDir = glm::refract(direction, normal, eta);
-        color =
-            glm::lerp(color, raytrace(data, p.point + 0.001f * refractedDir, refractedDir, depth - 1), transmitiveMat);
-    }
 
-    return color;
-}
-
-glm::vec3 Raytracer::pathtrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth) {
-    if (depth == 0)
-        return glm::vec3(0);
-
-    Object *object = nullptr;
-    std::optional<Intersection> intersection = raycast(data, origin, direction, object);
-    if (!intersection.has_value())
-        return clearColor;
-
-    Intersection p = intersection.value();
-
-    glm::vec3 light = RAYTRACE_AMBIENT;
-    glm::vec3 normal = p.normal;
-    glm::vec3 color = p.color * light + phong(p, glm::vec3(0), data);
-
-    bool hasReflective = object->mesh->material && object->mesh->material->colorReflective != glm::vec3(0);
-    glm::vec3 reflectiveMat = hasReflective ? object->mesh->material->colorReflective : glm::vec3(k_specular);
     if (reflectiveMat != glm::vec3(0) && depth > 1) {
         glm::vec3 randomDirection = glm::reflect(direction, normal + k_roughness * mtr::linearRandVec3(-0.5f, 0.5f));
         glm::vec3 rayColor = pathtrace(data, p.point, randomDirection, depth - 1);
         color = glm::lerp(color, reflectiveMat * rayColor, reflectiveMat);
     }
+
     bool hasTransmitive = object->mesh->material && object->mesh->material->colorTransmitive != glm::vec3(0);
     glm::vec3 transmitiveMat = hasTransmitive ? object->mesh->material->colorTransmitive : glm::vec3(k_transmit);
+
     if (transmitiveMat != glm::vec3(0) && depth > 1) {
         float eta = 1.0f;
         glm::vec3 refractedDir = glm::refract(direction, normal + k_roughness * mtr::linearRandVec3(-0.5f, 0.5f), eta);

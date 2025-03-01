@@ -8,8 +8,7 @@
 
 #include <iostream>
 
-// Object::Object(std::string name) : name(name) { transform = std::make_unique<Transform>(); }
-Object::Object(std::string name) : name(name) {}
+Object::Object(std::string name, std::string type) : name(name), type(type) {}
 
 void Object::render() {
     if (shader && renderable) {
@@ -29,6 +28,8 @@ glm::mat4 Object::getModelMatrix() {
     return parent != nullptr ? parent->getModelMatrix() * transform.getMatrix() : transform.getMatrix();
 }
 Transform *Object::getTransform() { return &transform; };
+
+Transform Object::getFullTransform() { return Transform(getModelMatrix()); };
 
 void Object::addBehavior(Behavior *b) {
     behaviors.emplace_back(b);
@@ -72,17 +73,4 @@ void Object::commit(bool force) {
         mesh->commit();
 
     uncommited = !force;
-}
-
-// TODO: finish
-Object *Object::Load(std::string resourceName, std::string objectName) {
-    std::string error;
-    const aiScene *scene = Loader::LoadResource(resourceName, error);
-    if (!scene) {
-        std::cout << "Error importing " << resourceName << ": " << error << std::endl;
-        return nullptr;
-    }
-    Object *object = new Object(objectName);
-
-    return object;
 }

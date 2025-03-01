@@ -1,8 +1,9 @@
 #include "objects/FullscreenTexture.h"
+
 #include "renderables/MeshRenderer.h"
 #include "renderer/Shader.h"
 
-FullscreenTexture::FullscreenTexture(std::string name, std::string shaderName) : Object(name) {
+FullscreenTexture::FullscreenTexture(std::string name, std::string shaderName) : Object(name, "texture") {
     shader = Shader::Load(shaderName);
 
     mesh = new Mesh(GL_TRIANGLES);
@@ -19,8 +20,8 @@ FullscreenTexture::FullscreenTexture(std::string name, std::string shaderName) :
 
 FullscreenTexture::~FullscreenTexture() { delete mesh; }
 
-void FullscreenTexture::setTexture(Texture *texture) {
-    this->texture = texture;
+void FullscreenTexture::setTexture(Texture *t) {
+    texture = t;
     shader->use();
     shader->setTexture(SHADER_TEXTURE, 0, texture->id);
     // shader->setUniform(SHADER_TEXTURE, 0);

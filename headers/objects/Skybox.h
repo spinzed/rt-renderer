@@ -9,10 +9,9 @@
 
 class Skybox : public Object {
   public:
-    Skybox(Cubemap *cm) : Object("skybox") {
+    Skybox(Cubemap *cm) : Object("skybox", "skybox") {
         cubemap = cm;
         shader = Shader::Load("skybox");
-
 
         mesh = new Mesh(GL_TRIANGLES);
         mesh->addVertex(-1, -1, -1); // v0
@@ -53,8 +52,7 @@ class Skybox : public Object {
 
         renderable = new MeshRenderer(mesh);
 
-        //shader->use();
-        cubemap->use(0);
+        //cubemap->use(0);
     }
 
     virtual void render() {

@@ -57,8 +57,8 @@ void ExampleGame::cursorPositionCallback(WindowCursorEvent event) {
     if (!app->manager->focused)
         return;
 
-    int dx = (float)app->manager->width / 2 - event.xpos;
-    int dy = (float)app->manager->height / 2 - event.ypos;
+    double dx = (double)app->manager->width / 2 - event.xpos;
+    double dy = (double)app->manager->height / 2 - event.ypos;
     Camera *camera = app->GetCamera();
 
     camera->rotate(mouseSensitivity * dx, mouseSensitivity * dy);

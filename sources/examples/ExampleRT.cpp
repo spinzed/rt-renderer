@@ -37,6 +37,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
+#include <objects/Sphere.h>
 
 void ExampleRT::cursorPositionCallback(WindowCursorEvent event) {
     if (!engine->manager->focused)
@@ -81,6 +82,9 @@ int ExampleRT::run(std::string execDirectory) {
     pod.getTransform()->scale(glm::vec3(5, 1, 5));
 
     engine->AddObject(&pod);
+
+    Sphere s("sphere", glm::vec3(1,1,1), 2);
+    engine->AddObject(&s);
 
     Input::addPerFrameListener([&](auto a) {
         float deltaTime = a.deltaTime;
