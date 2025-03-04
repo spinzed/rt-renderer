@@ -10,10 +10,10 @@
 #include "core/UI.h"
 #include "core/WindowManager.h"
 #include "models/Mesh.h"
-#include "renderer/Renderer.h"
 #include "objects/MeshObject.h"
 #include "objects/PointCloud.h"
 #include "renderer/Cubemap.h"
+#include "renderer/Renderer.h"
 #include "renderer/Shader.h"
 #include "utils/ThreadPool.h"
 
@@ -38,6 +38,7 @@
 #include <iostream>
 #include <mutex>
 #include <objects/Sphere.h>
+#include <objects/Plane.h>
 
 void ExampleRT::cursorPositionCallback(WindowCursorEvent event) {
     if (!engine->manager->focused)
@@ -83,8 +84,11 @@ int ExampleRT::run(std::string execDirectory) {
 
     engine->AddObject(&pod);
 
-    Sphere s("sphere", glm::vec3(1,1,1), 2);
+    Sphere s("sphere", glm::vec3(1, 1, 1), 1, glm::vec3(0, 1, 1));
     engine->AddObject(&s);
+
+    Plane p("plane", 2, 3);
+    engine->AddObject(&p);
 
     Input::addPerFrameListener([&](auto a) {
         float deltaTime = a.deltaTime;

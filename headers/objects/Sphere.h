@@ -15,11 +15,9 @@ class Sphere : public MeshObject {
 
     virtual std::optional<Intersection> findIntersection(glm::vec3 origin, glm::vec3 direction);
 
-  private:
     glm::vec3 color;
-    glm::vec3 center;
-    float radius;
 
+  private:
     void init(std::string name, glm::vec3 center, float radius, glm::vec3 color);
     void generateSphere();
 };

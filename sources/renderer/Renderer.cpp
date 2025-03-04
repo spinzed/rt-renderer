@@ -11,6 +11,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -50,8 +51,6 @@ void Renderer::Init(int width, int height) {
     textureShower = new FullscreenTexture("tekstura", "texture");
     textureShower->setTexture(outputTexture);
 
-    // depthFramebuffer = new Framebuffer();
-
     lightMapShader = Shader::Load("pointLight");
     rt = Shader::LoadCompute("raytrace");
 
@@ -59,25 +58,40 @@ void Renderer::Init(int width, int height) {
 }
 
 void Renderer::Render(RenderData data) {
+    debugString = "OpenGL ";
+    debugString += reinterpret_cast<const char*>(glGetString(GL_VERSION));
+    debugString += "\n";
+
+    Timer t = Timer::start();
+    debugString += "Rendering started\n";
+
     switch (method) {
     case Rasterize:
+        debugString += "Rendering Method: rasterization\n";
         rasterize(data);
         break;
     case Raycast:
     case Raytrace:
     case Pathtrace:
+        debugString += "Rendering Method: raytracing\n";
         raytracer.Render(data, textureShower);
         textureShower->render();
         _cameraMatrixChanged = false;
+        debugString += raytracer.debugString;
         break;
     case Noop:
+        debugString += "Rendering Method: none\n";
         break;
     default:
-        assert(method);
+        throw std::exception("invalid method " + method);
     }
+    debugString += t.format("Rendering done - $");
 }
 
 void Renderer::rasterize(RenderData data) {
+    Timer t = Timer::start();
+    debugString += "Rendering Method Starting\n";
+
     // ugly, but will make do (for now)
     lightPositions.clear();
     lightIntensities.clear();
@@ -103,6 +117,7 @@ void Renderer::rasterize(RenderData data) {
         light->cb.use(0);
         lightMapShader->setVector("lightPos", light->getTransform()->position());
     }
+    debugString += t.format("Processed lights: # ($)\n");
 
     // commit uncommited objects before rendering
     for (Object *o : *data.objects) {
@@ -124,6 +139,7 @@ void Renderer::rasterize(RenderData data) {
                 child->commit(true);
         }
     }
+    debugString += t.format("Objects commited: # ($)\n");
 
     // 1st pass - depth
     for (Object *o : *data.objects) {
@@ -141,6 +157,7 @@ void Renderer::rasterize(RenderData data) {
         }
     }
     depthFramebuffer->cleanDepth(_width, _height);
+    debugString += t.format("Depth pass: # ($)\n");
 
     // 2nd pass - scene with shadows
     if (data.skybox) {
@@ -157,10 +174,12 @@ void Renderer::rasterize(RenderData data) {
             o2->render();
         }
     }
+    debugString += t.format("Regular pass: # ($)\n");
     for (ParticleCluster *pc : ParticleSystem::clusters) {
         UpdateShader(pc, data);
         pc->render();
     }
+    debugString += t.format("Particles: # ($)\n");
 }
 
 void Renderer::UpdateShader(Object *object, RenderData data) {

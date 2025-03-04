@@ -86,7 +86,7 @@ class ExampleGame {
                 generateGPU(min_, max_);
             }
 
-            t.printElapsed("Generating done in: $");
+            t.printFormatted("Generating done in: $");
         }
 
         virtual void generateGPU(float min_, float max_) {

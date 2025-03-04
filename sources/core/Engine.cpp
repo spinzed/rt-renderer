@@ -22,6 +22,11 @@ void Engine::Init(int width, int height, std::string execDirectory) {
         if (data.action == GLFW_PRESS && data.key == GLFW_KEY_RIGHT_SHIFT) {
             SetGUIEnabled(!guiEnabled);
         }
+        if (data.action == GLFW_PRESS && data.key == GLFW_KEY_RIGHT_CONTROL) {
+            manager->SetIgnoreMouseEvents(!manager->mouseEventsIgnored);
+            manager->SetCursorMode(manager->CursorMode() == CursorMode::NORMAL ? CursorMode::DISABLED
+                                                                               : CursorMode::NORMAL);
+        }
     });
     Input::addPerFrameListener([&](auto _) {
         (void)_;
@@ -42,6 +47,9 @@ void Engine::Init(int width, int height, std::string execDirectory) {
 void Engine::Loop() {
     while (!manager->WantsToClose()) {
         float deltaTime = (float)manager->LimitFPS(false);
+        debugString = "Engine Debug String\n";
+        Timer t = Timer::start();
+        debugString += "Profiling started\n";
 
         Input::ClearControllerStates();
         // ask undelying window manager to poll all queued events
@@ -51,6 +59,7 @@ void Engine::Loop() {
         Input::firePerFrame(deltaTime);
         Animator::passTime(deltaTime);
         ParticleSystem::passTime(deltaTime);
+        debugString += t.format("Subsystems Fired: # ($)\n");
 
         // run game logic - update the object every tick according to the custom behavior scripts
         for (Object *o : objects) {
@@ -71,21 +80,23 @@ void Engine::Loop() {
                 }
             }
         }
+        debugString += t.format("Game logic ran: # ($)\n");
 
-        // wait a bit to prevent cpu choke and render the next frame
-        if (Renderer::RenderingMethod() == RenderingMethod::Noop) {
+        // if not active rendering, wait a bit to prevent cpu choke and render the next frame
+        if (!activeRendering) {
             std::this_thread::sleep_for(std::chrono::microseconds(16667));
             continue;
         }
 
         Clear();
         Render();
+
         SwapBuffers();
 
-        // stop rendering raytracing after first render
-        if (!Renderer::raytracer.integrationEnabled() && Renderer::RenderingMethod() != RenderingMethod::Rasterize) {
-            Renderer::SetRenderingMethod(RenderingMethod::Noop);
-        }
+        UI::Build([&]() { ImGui::Text(debugString.c_str()); });
+        UI::Build([&]() { ImGui::Text(Renderer::debugString.c_str()); });
+        std::string finalTime = t.format("Rendered and swapped: # ($)\n");
+        UI::Build([&]() { ImGui::Text(finalTime.c_str()); });
     }
 
     manager->Destroy();
@@ -132,14 +143,16 @@ void Engine::Render() {
 
 void Engine::SetGUIEnabled(bool e) {
     guiEnabled = e;
-    if (e) {
-        savedCursorMode = manager->CursorMode();
-        manager->SetCursorMode(CursorMode::NORMAL);
-    } else {
-        manager->SetCursorMode(savedCursorMode);
-    }
-    manager->SetIgnoreMouseEvents(e);
+    // if (e) {
+    //     savedCursorMode = manager->CursorMode();
+    //     manager->SetCursorMode(CursorMode::NORMAL);
+    // } else {
+    //     manager->SetCursorMode(savedCursorMode);
+    // }
+    // manager->SetIgnoreMouseEvents(e);
 }
+
+void Engine::SetActiveRendering(bool b) { activeRendering = b; }
 
 void Engine::EnableVSync() {
     glfwSwapInterval(1);

@@ -13,13 +13,21 @@ struct RTObject {
     int offset;
 };
 
-// Mesh - type 0
 struct RTMesh {};
 
-// Sphere - type 1
 struct RTSphere {
     float3 center;
     float radius;
+    float3 color;
+};
+
+struct RTPlane {
+    float3 center;
+    float3 normal;
+    float width;
+    float height;
+    float3 u;
+    float3 v;
     float3 color;
 };
 
@@ -34,16 +42,16 @@ struct RTScene {
     RTCamera camera;
     int sphereNum;
     RTSphere *spheres;
-    //int objectNum;
-    //RTObject *objects;
-    //int dataSize;
-    //void *data;
-    //size_t size() { return objectNum * sizeof(RTObject) + dataSize; }
+    int planeNum;
+    RTPlane *planes;
+    // int objectNum;
+    // RTObject *objects;
+    // int dataSize;
+    // void *data;
+    // size_t size() { return objectNum * sizeof(RTObject) + dataSize; }
 };
 
-// Plane - type 2
-struct RTPlane {};
-
 namespace CudaRT {
+inline std::string debugString;
 void render(int width, int height, RenderData data, float *output);
-}
+} // namespace CudaRT

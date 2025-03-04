@@ -38,6 +38,9 @@ class Engine {
     inline static bool guiEnabled = false;
     static void SetGUIEnabled(bool);
 
+    inline static bool activeRendering = true;
+    static void SetActiveRendering(bool b);
+
     inline static WindowManager *manager = nullptr;
 
   private:
@@ -47,4 +50,6 @@ class Engine {
     inline static std::shared_ptr<Camera> camera;
 
     inline static CursorMode savedCursorMode;
+     
+    inline static std::string debugString;
 };

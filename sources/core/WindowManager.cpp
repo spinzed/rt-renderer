@@ -1,4 +1,5 @@
 #include "core/WindowManager.h"
+
 #include "GLFW/glfw3.h"
 #include "utils/GLDebug.h"
 

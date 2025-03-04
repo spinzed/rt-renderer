@@ -39,6 +39,8 @@ class Renderer {
 
     inline static Raytracer raytracer;
 
+    inline static std::string debugString;
+
   private:
     inline static int _width;
     inline static int _height;

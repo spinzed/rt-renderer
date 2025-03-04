@@ -51,6 +51,8 @@ class Raytracer {
     int width = 0;
     int height = 0;
 
+    std::string debugString;
+
   private:
     unsigned int depth = RAYTRACE_DEPTH;
     bool monteCarlo = false;

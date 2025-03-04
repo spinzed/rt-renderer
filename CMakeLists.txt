@@ -28,6 +28,7 @@ if(ENABLE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
     message(STATUS "CUDA enabled")
+    set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS} "-g -G")  # enable cuda-gdb
     add_compile_definitions(ENABLE_CUDA=1)
 else()
     add_compile_definitions(ENABLE_CUDA=0)

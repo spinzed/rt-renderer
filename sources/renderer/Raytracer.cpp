@@ -24,27 +24,31 @@ void Raytracer::Init(int w, int h) {
 
 void Raytracer::Render(RenderData data, FullscreenTexture *output) {
     assert(width > 0 && height > 0);
+    debugString = "";
 
     t.reset();
 
 #if ENABLE_CUDA
     HardwareRender(data);
+    debugString += CudaRT::debugString;
 #else
     SoftwareRender(data);
 #endif
 
     std::cout << "Render done, number of renders: " << ++renderCount << std::endl;
-    t.printElapsed("Render Time: ");
+    t.printFormatted("Render Time: ");
     totalTime += t.elapsed();
     std::cout << "Total Render Time: " << totalTime << "ms" << std::endl;
 
     if (monteCarlo) {
         MonteCarlo();
-        t.printElapsed("Monte Carlo: ");
+        t.printFormatted("Monte Carlo: ");
+        debugString += t.format("Monte Carlo: # ($)\n");
     }
 
     output->loadRaster(CurrentRaster());
     SwitchRaster();
+    debugString += t.format("Raster Load: # ($)\n");
 }
 
 // #if ENABLE_CUDA
