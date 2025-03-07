@@ -20,6 +20,10 @@ void Raytracer::Init(int w, int h) {
         Raster<float> *r = new Raster<float>(width, height);
         rasteri.push_back(r);
     }
+
+#if ENABLE_CUDA
+    CudaRT::init();
+#endif
 }
 
 void Raytracer::Render(RenderData data, FullscreenTexture *output) {
@@ -35,19 +39,24 @@ void Raytracer::Render(RenderData data, FullscreenTexture *output) {
     SoftwareRender(data);
 #endif
 
-    std::cout << "Render done, number of renders: " << ++renderCount << std::endl;
-    t.printFormatted("Render Time: ");
-    totalTime += t.elapsed();
-    std::cout << "Total Render Time: " << totalTime << "ms" << std::endl;
+    // t.printFormatted("Render Time: ");
+    debugString += t.format("Render Time: $\n");
+    // std::cout << "Render done, number of renders: " << ++renderCount << std::endl;
+    // totalTime += t.elapsed();
+    // std::cout << "Total Render Time: " << totalTime << "ms" << std::endl;
+    renderCount++;
 
     if (monteCarlo) {
+#if ENABLE_CUDA
+        CudaRT::monteCarlo(width, height, renderCount, InactiveRaster()->get(), CurrentRaster()->get());
+#else
         MonteCarlo();
-        t.printFormatted("Monte Carlo: ");
-        debugString += t.format("Monte Carlo: # ($)\n");
+#endif
+        debugString += t.format(std::format("Monte Carlo after {} interations: # ($)\n", renderCount));
     }
 
-    output->loadRaster(CurrentRaster());
-    SwitchRaster();
+    output->loadRaster(monteCarlo ? InactiveRaster() : CurrentRaster());
+    // SwitchRaster();
     debugString += t.format("Raster Load: # ($)\n");
 }
 
@@ -59,11 +68,7 @@ void Raytracer::Render(RenderData data, FullscreenTexture *output) {
 
 void Raytracer::HardwareRender(RenderData data) {
 #if ENABLE_CUDA
-
-    CudaRT::render(width, height, data, CurrentRaster()->get());
-
-    // end cuda test
-
+    CudaRT::render(width, height, depth, data, CurrentRaster()->get());
 #endif
 }
 

@@ -12,6 +12,7 @@
 #include "models/Mesh.h"
 #include "objects/MeshObject.h"
 #include "objects/PointCloud.h"
+#include "objects/PolyLine.h"
 #include "renderer/Cubemap.h"
 #include "renderer/Renderer.h"
 #include "renderer/Shader.h"
@@ -37,8 +38,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
-#include <objects/Sphere.h>
 #include <objects/Plane.h>
+#include <objects/Sphere.h>
 
 void ExampleRT::cursorPositionCallback(WindowCursorEvent event) {
     if (!engine->manager->focused)
@@ -84,11 +85,27 @@ int ExampleRT::run(std::string execDirectory) {
 
     engine->AddObject(&pod);
 
-    Sphere s("sphere", glm::vec3(1, 1, 1), 1, glm::vec3(0, 1, 1));
+    Sphere s("sphere", glm::vec3(1, 0.8, 1), 1, glm::vec3(0, 1, 1));
     engine->AddObject(&s);
+    s.material = new Material();
+    s.material->colorEmissive = glm::vec3(1, 1, 1);
+    s.material->emissiveStrength = 10;
 
-    Plane p("plane", 2, 3);
+    Plane p("plane", 100, 100, glm::vec3(0.8, 0, 0.1));
     engine->AddObject(&p);
+
+    // glm::vec3 u, v;
+    // p.uv(u, v);
+    // PolyLine l1(glm::vec3(1, 0, 0)), l2(glm::vec3(0, 0, 1));
+    // l1.addPoint(p.getTransform()->apply(p.mesh->getVertex(0)));
+    // l1.addPoint(p.getTransform()->apply(p.mesh->getVertex(0)) + u);
+    // l2.addPoint(p.getTransform()->apply(p.mesh->getVertex(0)));
+    // l2.addPoint(p.getTransform()->apply(p.mesh->getVertex(0)) + v);
+    // l1.commit();
+    // l2.commit();
+    // engine->AddObject(&l1);
+    // engine->AddObject(&l2);
+    UI::AddBuilderFunction([&]() { ImGui::SliderInt("Depth", &Renderer::raytracer.depth, 0, 5); });
 
     Input::addPerFrameListener([&](auto a) {
         float deltaTime = a.deltaTime;
@@ -153,6 +170,12 @@ int ExampleRT::run(std::string execDirectory) {
         }
         if (event.key == GLFW_KEY_2) {
             Renderer::SetRenderingMethod(RenderingMethod::Pathtrace);
+        }
+        if (event.key == GLFW_KEY_3) {
+            Engine::SetActiveRendering(!Engine::activeRendering);
+        }
+        if (event.key == GLFW_KEY_4) {
+            Renderer::raytracer.setIntegrationEnabled(!Renderer::raytracer.integrationEnabled());
         }
     });
 

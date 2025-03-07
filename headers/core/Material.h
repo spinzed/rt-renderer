@@ -13,6 +13,7 @@ class Material {
     float shininess;
     glm::vec3 colorReflective;
     glm::vec3 colorEmissive;
+    float emissiveStrength;
     glm::vec3 colorTransmitive;
     int texture = -1;
 

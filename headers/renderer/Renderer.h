@@ -3,13 +3,12 @@
 #include "models/Light.h"
 #include "objects/FullscreenTexture.h"
 #include "objects/Object.h"
+#include "objects/Skybox.h"
 #include "renderer/Framebuffer.h"
 #include "renderer/Raytracer.h"
 
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-
-#include <objects/Skybox.h>
 
 enum RenderingMethod {
     Noop,
@@ -30,7 +29,7 @@ class Renderer {
 
     inline static int vsync = 0;
     static void SetResolution(int width, int height);
-    
+
     inline static enum RenderingMethod RenderingMethod() { return method; };
     inline static void SetRenderingMethod(enum RenderingMethod m) { method = m; };
 

@@ -126,6 +126,10 @@ glm::mat4 Transform::perspective(int width, int height, float nearp, float far, 
     return Transform::frustum(-w, w, -h, h, nearp, far);
 }
 
+glm::vec3 Transform::apply(glm::vec3 vector) {
+    return getMatrix() * glm::vec4(vector, 1);
+}
+
 glm::mat4 Transform::getMatrix() { return matrix; }
 
 glm::vec3 Transform::getEulerAngles() {

@@ -14,6 +14,8 @@ void UI::Init(GLFWwindow *window) {
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
+
+    ImGui::GetStyle().ScaleAllSizes(1.5f); 
 }
 
 void UI::AddBuilderFunction(std::function<void()> f) { builderFuncs.emplace_back(f); }

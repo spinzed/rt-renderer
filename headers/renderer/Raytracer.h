@@ -8,7 +8,7 @@
 #include "utils/Timer.h"
 
 #define RAYTRACE_MULTICORE 1
-#define RAYTRACE_DEPTH 1
+#define RAYTRACE_DEPTH 2
 #define RAYTRACE_NUM_OF_SAMPLES 1
 #define RAYTRACE_RANDOMNESS 0
 #define RAYTRACE_OFFSET 1
@@ -28,7 +28,13 @@ class Raytracer {
     void setDepth(int d) { depth = d; };
 
     bool integrationEnabled() { return monteCarlo; }
-    void setIntegrationEnabled(bool enabled) { monteCarlo = enabled; }
+    void setIntegrationEnabled(bool enabled) {
+        monteCarlo = enabled;
+        if (enabled) {
+            resetStats();
+            InactiveRaster()->reset();
+        }
+    }
 
     float kSpecular() { return k_specular; }
     void setKSpecular(float k) { k_specular = k; }
@@ -52,9 +58,9 @@ class Raytracer {
     int height = 0;
 
     std::string debugString;
+    int depth = RAYTRACE_DEPTH;
 
   private:
-    unsigned int depth = RAYTRACE_DEPTH;
     bool monteCarlo = false;
     float k_specular = K_SPECULAR;
     float k_roughness = K_ROUGNESS;
@@ -75,7 +81,7 @@ class Raytracer {
 
     void MonteCarlo();
 
-    Raster<float>* CurrentRaster();
-    Raster<float>* InactiveRaster();
+    Raster<float> *CurrentRaster();
+    Raster<float> *InactiveRaster();
     void SwitchRaster();
 };

@@ -13,12 +13,16 @@ struct RTObject {
     int offset;
 };
 
-struct RTMesh {};
+struct RTMesh {
+    int indexOffset;
+    int indexNumber;
+    int materialIndex;
+};
 
 struct RTSphere {
     float3 center;
     float radius;
-    float3 color;
+    int materialIndex;
 };
 
 struct RTPlane {
@@ -28,7 +32,7 @@ struct RTPlane {
     float height;
     float3 u;
     float3 v;
-    float3 color;
+    int materialIndex;
 };
 
 struct RTCamera {
@@ -38,20 +42,29 @@ struct RTCamera {
     float3 dy;
 };
 
+struct RTMaterial {
+    float reflectivity;
+    //float shininess;
+    float3 emission;
+    float emissionStrength;
+    float3 diffuse;
+};
+
 struct RTScene {
     RTCamera camera;
     int sphereNum;
     RTSphere *spheres;
     int planeNum;
     RTPlane *planes;
-    // int objectNum;
-    // RTObject *objects;
-    // int dataSize;
-    // void *data;
-    // size_t size() { return objectNum * sizeof(RTObject) + dataSize; }
+    RTMesh *meshes;
+    float *vertices;
+    int *indices;
+    RTMaterial *materials;
 };
 
 namespace CudaRT {
 inline std::string debugString;
-void render(int width, int height, RenderData data, float *output);
+void init();
+void render(int width, int height, int depth, RenderData data, float *output);
+void monteCarlo(int width, int height, int rednerCount, float *input1, float *input2); // output written to input1
 } // namespace CudaRT

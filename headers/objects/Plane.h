@@ -16,14 +16,17 @@ class Plane : public MeshObject {
     }
     ~Plane() {};
 
-    glm::vec3 normal() { return glm::normalize(glm::vec3(transform.getMatrix() * glm::vec4(0, 0, 1, 1))); }
+    glm::vec3 normal() { return glm::normalize(transform.apply(glm::vec3(0, 0, -1))); }
 
     glm::vec3 center() { return transform.position(); }
 
     void uv(glm::vec3 &u, glm::vec3 &v) {
-        glm::vec3 first = mesh->getVertex(0);
-        u = mesh->getVertex(1) - first;
-        v = mesh->getVertex(2) - first;
+        glm::cross(glm::vec3(0), glm::vec3(0));
+        glm::vec3 first = transform.apply(mesh->getVertex(0));
+        glm::vec3 second = transform.apply(mesh->getVertex(1));
+        glm::vec3 third = transform.apply(mesh->getVertex(2));
+        u = glm::normalize(second - first);
+        v = glm::normalize(third - first);
     }
 
     glm::vec3 color;

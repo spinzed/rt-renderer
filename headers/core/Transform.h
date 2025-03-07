@@ -48,6 +48,7 @@ class Transform {
     static glm::mat4 frustum(float l, float r, float b, float t, float n, float f);
     static glm::mat4 perspective(int width, int height, float nearp, float far, float angleDeg);
 
+    glm::vec3 apply(glm::vec3 vector);
     glm::highp_mat4 getMatrix();
     void setMatrix(glm::mat4 m) {
         matrix = m;

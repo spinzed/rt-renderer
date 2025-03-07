@@ -13,6 +13,7 @@ template <typename T> class Raster {
     Raster(int width, int height, unsigned int channels);
     ~Raster();
     void resize(int width, int height);
+    void reset();
     glm::vec3 getFragmentColor(int x, int y);
     void setFragmentColor(int x, int y, glm::vec3 boja);
     float *get();
@@ -45,7 +46,11 @@ template <typename T> void Raster<T>::resize(int width, int height) {
 template <typename T> void Raster<T>::set(int width, int height) {
     this->width = width;
     this->height = height;
-    raster = static_cast<float *>(calloc(width * height * channels, sizeof(float)));
+    raster = static_cast<float *>(calloc(width * height * channels, sizeof(T)));
+}
+
+template <typename T> void Raster<T>::reset() {
+    std::memset(reinterpret_cast<void *>(raster), 0, width * height * channels * sizeof(T));
 }
 
 template <typename T> float *Raster<T>::get() { return raster; }
