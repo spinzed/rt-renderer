@@ -21,6 +21,8 @@ void Raytracer::Init(int w, int h) {
         rasteri.push_back(r);
     }
 
+    settings.dofDistance = 1.0f;
+
 #if ENABLE_CUDA
     CudaRT::init();
 #endif
@@ -68,7 +70,15 @@ void Raytracer::Render(RenderData data, FullscreenTexture *output) {
 
 void Raytracer::HardwareRender(RenderData data) {
 #if ENABLE_CUDA
-    CudaRT::render(width, height, depth, data, CurrentRaster()->get());
+
+    // cuda-specific constants
+    //int minGridSize = width * height / 32768;
+    //if (hardware.gridSize * hardware.gridSize < minGridSize)
+    //    hardware.gridSize = ((minGridSize + 1) / 32 + 1) * 32;
+    CudaRT::gridSize = hardware.gridSize;
+    CudaRT::settings = settings;
+
+    CudaRT::render(width, height, depth, rpp, data, CurrentRaster()->get());
 #endif
 }
 

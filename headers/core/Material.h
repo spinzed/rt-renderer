@@ -11,6 +11,7 @@ class Material {
     glm::vec3 colorDiffuse;
     glm::vec3 colorSpecular;
     float shininess;
+    float smoothness;
     glm::vec3 colorReflective;
     glm::vec3 colorEmissive;
     float emissiveStrength;

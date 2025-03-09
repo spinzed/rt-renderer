@@ -28,6 +28,7 @@ void WindowManager::init(int width, int height, double theTargetFps, bool theVer
     verbose = theVerboseSetting;
     this->width = width;
     this->height = height;
+    SetCursorMode(CursorMode::NORMAL);
 
     glfwSetWindowUserPointer(window, static_cast<void *>(this)); // TODO: get rid of this
     glfwSetFramebufferSizeCallback(window, resizeCallbackWrapper);

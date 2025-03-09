@@ -26,7 +26,7 @@
 #define DEBUG_NOCOLOR 0
 
 Mesh::Mesh(unsigned int primitiveType) {
-    material = new Material();
+    material = new Material(); // TODO:: remove
     defaultColor = DEFAULT_COLOR;
     setPrimitiveType(primitiveType);
 }

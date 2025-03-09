@@ -36,6 +36,16 @@ class Raytracer {
         }
     }
 
+    struct HardwareConstants {
+      int gridSize = 16;
+    } hardware;
+
+    RTRenderSettings settings = {
+      .renderSpheres = true,
+      .renderPlanes = true,
+      .renderMeshes = true,
+    };
+
     float kSpecular() { return k_specular; }
     void setKSpecular(float k) { k_specular = k; }
 
@@ -59,6 +69,7 @@ class Raytracer {
 
     std::string debugString;
     int depth = RAYTRACE_DEPTH;
+    int rpp = 1;
 
   private:
     bool monteCarlo = false;

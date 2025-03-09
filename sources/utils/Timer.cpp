@@ -15,7 +15,7 @@ std::string _format(double elapsedTime) {
 
 void Timer::reset() {
     // Capture the current time point using high-resolution clock
-    t1 = std::chrono::high_resolution_clock::now();
+    t1 = tlast = std::chrono::high_resolution_clock::now();
 }
 
 double Timer::elapsed() {
@@ -46,13 +46,14 @@ std::string Timer::format(std::string message) {
         double elapsedTime = elapsed();
         message += _format(elapsedTime);
     } else {
-        if (indexDollar != std::string::npos) {
-            double elapsedTime = elapsed();
-            message.replace(indexDollar, 1, _format(elapsedTime));
-        }
         if (indexPound != std::string::npos) {
             double elapsedTime = checkpoint();
             message.replace(indexPound, 1, _format(elapsedTime));
+        }
+        indexDollar = message.find("$");
+        if (indexDollar != std::string::npos) {
+            double elapsedTime = elapsed();
+            message.replace(indexDollar, 1, _format(elapsedTime));
         }
     }
     return message;

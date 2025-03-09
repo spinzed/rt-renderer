@@ -44,6 +44,13 @@ void Transform::setPosition(glm::vec3 position) {
 
 void Transform::rotate(glm::vec3 axis, float degrees) { setMatrix(calculateRotated(axis, degrees)); }
 
+void Transform::rotateCenter(glm::vec3 axis, float degrees) {
+    glm::vec3 pos = position();
+    matrix = calculateTranslated(-pos);
+    matrix = calculateRotated(axis, degrees);
+    setMatrix(calculateTranslated(pos));
+}
+
 glm::mat4 Transform::calculateRotated(glm::vec3 axis, float degrees) {
     return glm::rotate(matrix, glm::radians(degrees), axis);
 }
@@ -127,7 +134,7 @@ glm::mat4 Transform::perspective(int width, int height, float nearp, float far, 
 }
 
 glm::vec3 Transform::apply(glm::vec3 vector) {
-    return getMatrix() * glm::vec4(vector, 1);
+    return getMatrix() * glm::vec4(vector, 0);
 }
 
 glm::mat4 Transform::getMatrix() { return matrix; }

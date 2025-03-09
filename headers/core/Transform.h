@@ -29,6 +29,7 @@ class Transform {
     void translate(glm::vec3 orientation);
     void setPosition(glm::vec3 position);
     void rotate(glm::vec3 axis, float degrees);
+    void rotateCenter(glm::vec3 axis, float degrees);
     void scale(glm::vec3 scale);
     void scale(float scale);
     void setScale(glm::vec3 scale);

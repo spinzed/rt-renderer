@@ -51,6 +51,8 @@ class WindowManager {
     static const double MIN_TARGET_FPS;
     static const double
         MAX_TARGET_FPS; // If you set this above the refresh of your monitor and enable VSync it'll break! Be aware!
+    
+    CursorMode cursorMode;
 
     // Private method to set relatively sane defaults. Called by constructors before overwriting with more specific
     // values as required.
@@ -84,6 +86,10 @@ class WindowManager {
     static void windowFocusCallbackWrapper(GLFWwindow *window, int f) {
         (void)window;
         focused = f;
+
+        WindowManager *manager = static_cast<WindowManager *>(glfwGetWindowUserPointer(window));
+        if (manager->cursorMode == CursorMode::DISABLED)
+            manager->CenterCursor();
 
         if (windowFocusCallback) {
             WindowFocusEvent event = {.focused = focused};
@@ -134,11 +140,13 @@ class WindowManager {
 
     void GetCursorPosition(double *x, double *y) { glfwGetCursorPos(window, x, y); }
 
-    void SetCursorPosition(float width, float height) { glfwSetCursorPos(window, width, height); }
+    void SetCursorPosition(float w, float h) { glfwSetCursorPos(window, w, h); }
 
-    void CenterCursor() { SetCursorPosition((float)width / 2, (float)height / 2); }
+    //void CenterCursor() { SetCursorPosition((float)width / 2, (float)height / 2); }
+    void CenterCursor() { SetCursorPosition(0, 0); }
 
     void SetCursorMode(CursorMode mode) {
+        cursorMode = mode;
         switch (mode) {
         case CursorMode::NORMAL:
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -148,6 +156,7 @@ class WindowManager {
             break;
         case CursorMode::DISABLED:
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            CenterCursor();
             break;
         default:
             std::cout << "unsuppored cursor mode" << std::endl;
@@ -175,9 +184,9 @@ class WindowManager {
 
     void setWindowFocusCallback(std::function<void(WindowFocusEvent)> l) { windowFocusCallback = l; }
 
-    void GetBounds(int &width, int &height) {
-        width = this->width;
-        height = this->height;
+    void GetBounds(int &w, int &h) {
+        w = width;
+        h = height;
     }
 
     bool WantsToClose();

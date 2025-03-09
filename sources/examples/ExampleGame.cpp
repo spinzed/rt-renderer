@@ -75,12 +75,6 @@ int ExampleGame::run(std::string execDirectory) {
     app->manager->SetCursorMode(CursorMode::DISABLED);
 
     app->manager->setCursorCallback([&](auto a) { cursorPositionCallback(a); });
-    app->manager->setWindowFocusCallback([&](auto data) {
-        // FIXME: when clicking on window focused goes to 1, but it doesn't change the cursor pos
-        if (data.focused) {
-            app->manager->CenterCursor();
-        }
-    });
 
     /*********************************************************************************************/
     Shader *fullbrightShader = Shader::Load("fullbright");

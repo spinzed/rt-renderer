@@ -48,6 +48,7 @@ struct RTMaterial {
     float3 emission;
     float emissionStrength;
     float3 diffuse;
+    float smoothness;
 };
 
 struct RTScene {
@@ -56,6 +57,7 @@ struct RTScene {
     RTSphere *spheres;
     int planeNum;
     RTPlane *planes;
+    int meshNum;
     RTMesh *meshes;
     float *vertices;
     int *indices;
@@ -63,8 +65,12 @@ struct RTScene {
 };
 
 namespace CudaRT {
+
 inline std::string debugString;
+inline int gridSize = 256;
+inline RTRenderSettings settings;
+
 void init();
-void render(int width, int height, int depth, RenderData data, float *output);
+void render(int width, int height, int depth, int rpp, RenderData data, float *output);
 void monteCarlo(int width, int height, int rednerCount, float *input1, float *input2); // output written to input1
 } // namespace CudaRT

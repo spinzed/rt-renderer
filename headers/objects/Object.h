@@ -49,8 +49,8 @@ class Object : public Renderable {
 
     Shader *shader = nullptr;
     Mesh *mesh = nullptr;
-    Renderable *renderable = nullptr;
-    Material *material = nullptr; // this should be a vector
+    Renderable *renderable = nullptr; // TODO: remove
+    Material *material = nullptr;
     std::vector<Behavior *> behaviors;
     Object *parent = nullptr;
     Object *rootParent = nullptr;

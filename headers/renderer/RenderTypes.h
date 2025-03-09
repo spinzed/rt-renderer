@@ -13,3 +13,12 @@ struct RenderData {
     Skybox *skybox;
     Camera *camera;
 };
+
+struct RTRenderSettings {
+    bool renderSpheres;
+    bool renderPlanes;
+    bool renderMeshes;
+    float blurriness;
+    float dofStrength;
+    float dofDistance;
+};

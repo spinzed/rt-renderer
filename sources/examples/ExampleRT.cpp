@@ -63,12 +63,6 @@ int ExampleRT::run(std::string execDirectory) {
     engine->manager->SetCursorMode(CursorMode::DISABLED);
 
     engine->manager->setCursorCallback([&](auto a) { cursorPositionCallback(a); });
-    engine->manager->setWindowFocusCallback([&](auto data) {
-        // FIXME: when clicking on window focused goes to 1, but it doesn't change the cursor pos
-        if (data.focused) {
-            engine->manager->CenterCursor();
-        }
-    });
 
     /*********************************************************************************************/
     Camera *camera = engine->GetCamera();
@@ -79,20 +73,76 @@ int ExampleRT::run(std::string execDirectory) {
     Cubemap skybox = Cubemap::Load("skybox");
     engine->SetSkybox(&skybox);
 
-    Mesh *mesh = Mesh::Load("kocka");
-    MeshObject pod("pod", mesh);
-    pod.getTransform()->scale(glm::vec3(5, 1, 5));
+    // Mesh *mesh = Mesh::Load("kocka");
+    // MeshObject pod("pod", mesh);
+    // pod.getTransform()->scale(glm::vec3(5, 1, 5));
+    // engine->AddObject(&pod);
 
-    engine->AddObject(&pod);
+    Mesh *mesh = Mesh::Load("arwing");
+    MeshObject arwing("arwing", mesh);
+    //.getTransform()->scale(glm::vec3(5, 1, 5));
+    arwing.material = new Material();
+    arwing.material->colorDiffuse = glm::vec3(0.8, 0.8, 0.8);
+    arwing.getTransform()->translate(glm::vec3(0, 10, 0));
+    arwing.getTransform()->scale(2);
+    // engine->AddObject(&arwing);
 
-    Sphere s("sphere", glm::vec3(1, 0.8, 1), 1, glm::vec3(0, 1, 1));
-    engine->AddObject(&s);
+    Sphere s("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
+    s.getTransform()->translate(glm::vec3(1, 5, 0));
     s.material = new Material();
     s.material->colorEmissive = glm::vec3(1, 1, 1);
-    s.material->emissiveStrength = 10;
+    // s.material->emissiveStrength = 10;
+    engine->AddObject(&s);
 
-    Plane p("plane", 100, 100, glm::vec3(0.8, 0, 0.1));
+    Sphere s2("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
+    s2.getTransform()->translate(glm::vec3(1, 1, 1));
+    s2.material = new Material();
+    s2.material->smoothness = 0.4f;
+    engine->AddObject(&s2);
+
+    Sphere s3("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
+    s3.getTransform()->translate(glm::vec3(-1, 4, 0));
+    s3.material = new Material();
+    s3.material->smoothness = 1;
+    engine->AddObject(&s3);
+
+    Plane p("plane", 10, 10, glm::vec3(0.8, 0, 0.1));
     engine->AddObject(&p);
+    Plane zid1("plane", 1, 1, glm::vec3(0.5, 0.5, 0));
+    zid1.getTransform()->rotateCenter(TransformIdentity::right(), 90.0f);
+    zid1.getTransform()->scale(10);
+    zid1.getTransform()->translate(glm::vec3(0, -1, 1));
+    engine->AddObject(&zid1);
+    Plane zid2("plane", 1, 1, glm::vec3(1, 1, 1));
+    zid2.getTransform()->rotateCenter(TransformIdentity::up(), 90.0f);
+    zid2.getTransform()->scale(10);
+    zid2.getTransform()->translate(glm::vec3(1, 0, 1));
+    zid2.material = new Material();
+    // zid2.material->smoothness = 1;
+    engine->AddObject(&zid2);
+    Plane zid3("plane", 1, 1, glm::vec3(0, 0, 1));
+    zid3.getTransform()->rotateCenter(TransformIdentity::right(), -90.0f);
+    zid3.getTransform()->scale(10);
+    zid3.getTransform()->translate(glm::vec3(0, 1, 1));
+    engine->AddObject(&zid3);
+    Plane zid4("plane", 1, 1, glm::vec3(0.1, 0.6, 0.1));
+    zid4.getTransform()->rotateCenter(TransformIdentity::up(), -90.0f);
+    zid4.getTransform()->scale(10);
+    zid4.getTransform()->translate(glm::vec3(-1, 0, 1));
+    // engine->AddObject(&zid4);
+    Plane strop("plane", 1, 1, glm::vec3(0.3, 0.1, 0.3));
+    strop.getTransform()->rotateCenter(TransformIdentity::up(), 180.0f);
+    strop.getTransform()->scale(10);
+    strop.getTransform()->translate(glm::vec3(0, 0, 2));
+    engine->AddObject(&strop);
+    Plane svica("plane", 1, 1, glm::vec3(1, 1, 1));
+    svica.getTransform()->rotateCenter(TransformIdentity::up(), 180.0f);
+    svica.getTransform()->scale(2.5);
+    svica.getTransform()->translate(glm::vec3(0, 0, 7.99));
+    svica.material = new Material();
+    svica.material->colorEmissive = glm::vec3(1, 1, 1);
+    svica.material->emissiveStrength = 20;
+    engine->AddObject(&svica);
 
     // glm::vec3 u, v;
     // p.uv(u, v);
@@ -105,7 +155,19 @@ int ExampleRT::run(std::string execDirectory) {
     // l2.commit();
     // engine->AddObject(&l1);
     // engine->AddObject(&l2);
-    UI::AddBuilderFunction([&]() { ImGui::SliderInt("Depth", &Renderer::raytracer.depth, 0, 5); });
+    UI::AddBuilderFunction([&]() {
+        ImGui::SliderInt("Depth", &Renderer::raytracer.depth, 0, 10);
+        ImGui::SliderInt("Rays per pixel", &Renderer::raytracer.rpp, 0, 10);
+        ImGui::Checkbox("Render spheres", &Renderer::raytracer.settings.renderSpheres);
+        ImGui::Checkbox("Render planes", &Renderer::raytracer.settings.renderPlanes);
+        ImGui::Checkbox("Render meshes", &Renderer::raytracer.settings.renderMeshes);
+        if (ImGui::SliderInt("Grid size", &Renderer::raytracer.hardware.gridSize, 4, 32)) {
+            Renderer::raytracer.hardware.gridSize = (Renderer::raytracer.hardware.gridSize / 4) * 4;
+        }
+        ImGui::SliderFloat("Blurriness (1.0 = AA)", &Renderer::raytracer.settings.blurriness, 0, 100);
+        ImGui::SliderFloat("Dof strength", &Renderer::raytracer.settings.dofStrength, 0, 100);
+        ImGui::SliderFloat("Dof distance", &Renderer::raytracer.settings.dofDistance, 0, 10);
+    });
 
     Input::addPerFrameListener([&](auto a) {
         float deltaTime = a.deltaTime;
