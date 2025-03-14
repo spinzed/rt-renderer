@@ -21,13 +21,16 @@ Sphere::Sphere(std::string name, glm::vec3 center, float radius)
 void Sphere::init(std::string n, glm::vec3 center, float radius, glm::vec3 c) {
     name = n;
     type = "sphere";
-    color = c;
     transform.translate(center);
     transform.scale(radius);
+    material = new Material();
+    material->colorDiffuse = c;
 
     generateSphere();
     mesh->commit();
 }
+
+inline glm::vec3 &Sphere::color() { return material->colorDiffuse; }
 
 Sphere::~Sphere() { delete mesh; }
 
@@ -40,11 +43,11 @@ std::optional<Intersection> Sphere::findIntersection(glm::vec3 origin, glm::vec3
     unsigned int koliko = mtr::intersectLineAndSphere(origin, direction, center, radius, t1, t2);
     if (koliko == 2 && t2 > 0 && t2 < t1) {
         glm::vec3 point = origin + t2 * direction;
-        return Intersection(t2, point, color, glm::normalize(point - center));
+        return Intersection(t2, point, color(), glm::normalize(point - center));
     }
     if (koliko > 0 && t1 > 0) {
         glm::vec3 point = origin + t1 * direction;
-        return Intersection(t1, point, color, glm::normalize(point - center));
+        return Intersection(t1, point, color(), glm::normalize(point - center));
     }
     return std::nullopt;
 }
@@ -64,7 +67,7 @@ void Sphere::generateSphere() {
 
             glm::vec3 unit(cosf(theta) * sinf(phi), cosf(phi), sinf(theta) * sinf(phi));
 
-            mesh->addVertex(unit, color); // center + unit * radius
+            mesh->addVertex(unit, color()); // center + unit * radius
             mesh->addNormal(unit);
         }
     }

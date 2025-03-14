@@ -118,9 +118,7 @@ void Mesh::processResource(std::string name, const aiScene *scene) {
 
         if (numTextures > 0 && AI_SUCCESS == mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), textureName)) {
             // why the hell are there windows delimiters???
-            // material->texture = Loader::LoadTexture(name, fixPath(textureName.data)); // TODO: katastrofa
-            auto tx = Texture::Load(name, fixPath(textureName.data)); // TODO: memory leak
-            material->texture = tx->id;
+            material->texture = Texture::Load(name, fixPath(textureName.data));
         }
 
         if (numTextures > 1) {

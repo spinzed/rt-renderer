@@ -1,11 +1,30 @@
 #pragma once
 
-#include "objects/Skybox.h"
 #include "models/Light.h"
-#include "objects/Object.h"
-#include "core/Camera.h"
+#include "renderer/Camera.h"
+#include "renderer/Texture.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+
+struct Material {
+    glm::vec3 colorAmbient;
+    glm::vec3 colorDiffuse;
+    glm::vec3 colorSpecular;
+    float shininess;
+    float smoothness;
+    glm::vec3 colorReflective;
+    glm::vec3 colorEmissive;
+    float emissiveStrength;
+    glm::vec3 colorTransmitive;
+    Texture *texture = nullptr;
+};
+
+class Object;
+class Light;
+class Skybox;
 
 struct RenderData {
     std::vector<Object *> *objects;

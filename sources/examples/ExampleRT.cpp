@@ -4,7 +4,7 @@
 #include "core/Animation.h"
 #include "core/Animator.h"
 #include "core/Behavior.h"
-#include "core/Camera.h"
+#include "renderer/Camera.h"
 #include "core/Input.h"
 #include "core/Transform.h"
 #include "core/UI.h"
@@ -52,9 +52,7 @@ void ExampleRT::cursorPositionCallback(WindowCursorEvent event) {
     camera->rotate(mouseSensitivity * dx, mouseSensitivity * dy);
     camera->recalculateMatrix();
 
-    // engine->manager->CenterCursor();
-    // engine->manager->SetCursorPosition(dx, dy);
-    engine->manager->SetCursorPosition(0, 0);
+    engine->manager->CenterCursor();
 }
 
 int ExampleRT::run(std::string execDirectory) {
@@ -73,36 +71,28 @@ int ExampleRT::run(std::string execDirectory) {
     Cubemap skybox = Cubemap::Load("skybox");
     engine->SetSkybox(&skybox);
 
-    // Mesh *mesh = Mesh::Load("kocka");
-    // MeshObject pod("pod", mesh);
-    // pod.getTransform()->scale(glm::vec3(5, 1, 5));
-    // engine->AddObject(&pod);
-
-    Mesh *mesh = Mesh::Load("arwing");
+    Mesh *mesh = Mesh::Load("stroj");
     MeshObject arwing("arwing", mesh);
     //.getTransform()->scale(glm::vec3(5, 1, 5));
     arwing.material = new Material();
-    arwing.material->colorDiffuse = glm::vec3(0.8, 0.8, 0.8);
-    arwing.getTransform()->translate(glm::vec3(0, 10, 0));
-    arwing.getTransform()->scale(2);
-    // engine->AddObject(&arwing);
+    arwing.material->colorDiffuse = glm::vec3(1, 0.5, 0.0);
+    arwing.getTransform()->translate(glm::vec3(5, 8, 0));
+    arwing.getTransform()->scale(1);
+    engine->AddObject(&arwing);
 
     Sphere s("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
     s.getTransform()->translate(glm::vec3(1, 5, 0));
-    s.material = new Material();
     s.material->colorEmissive = glm::vec3(1, 1, 1);
     // s.material->emissiveStrength = 10;
     engine->AddObject(&s);
 
     Sphere s2("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
     s2.getTransform()->translate(glm::vec3(1, 1, 1));
-    s2.material = new Material();
     s2.material->smoothness = 0.4f;
     engine->AddObject(&s2);
 
     Sphere s3("sphere", glm::vec3(1, 0.8, 1), 3, glm::vec3(0, 1, 1));
     s3.getTransform()->translate(glm::vec3(-1, 4, 0));
-    s3.material = new Material();
     s3.material->smoothness = 1;
     engine->AddObject(&s3);
 
@@ -117,7 +107,6 @@ int ExampleRT::run(std::string execDirectory) {
     zid2.getTransform()->rotateCenter(TransformIdentity::up(), 90.0f);
     zid2.getTransform()->scale(10);
     zid2.getTransform()->translate(glm::vec3(1, 0, 1));
-    zid2.material = new Material();
     // zid2.material->smoothness = 1;
     engine->AddObject(&zid2);
     Plane zid3("plane", 1, 1, glm::vec3(0, 0, 1));
@@ -137,9 +126,8 @@ int ExampleRT::run(std::string execDirectory) {
     engine->AddObject(&strop);
     Plane svica("plane", 1, 1, glm::vec3(1, 1, 1));
     svica.getTransform()->rotateCenter(TransformIdentity::up(), 180.0f);
+    svica.getTransform()->translate(glm::vec3(0, 0, 19.99));
     svica.getTransform()->scale(2.5);
-    svica.getTransform()->translate(glm::vec3(0, 0, 7.99));
-    svica.material = new Material();
     svica.material->colorEmissive = glm::vec3(1, 1, 1);
     svica.material->emissiveStrength = 20;
     engine->AddObject(&svica);

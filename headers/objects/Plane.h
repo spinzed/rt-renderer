@@ -16,6 +16,8 @@ class Plane : public MeshObject {
     }
     ~Plane() {};
 
+    inline glm::vec3 &color() { return material->colorDiffuse; }
+
     glm::vec3 normal() { return glm::normalize(transform.apply(glm::vec3(0, 0, -1))); }
 
     glm::vec3 center() { return transform.position(); }
@@ -29,13 +31,12 @@ class Plane : public MeshObject {
         v = glm::normalize(third - first);
     }
 
-    glm::vec3 color;
-
   private:
-    void init(std::string name, float width, float height, glm::vec3 color) {
-        this->name = name;
-        this->color = color;
+    void init(std::string n, float width, float height, glm::vec3 color) {
+        name = n;
         type = "plane";
+        material = new Material();
+        material->colorDiffuse = color;
 
         mesh->addVertex(glm::vec3(-1, -1, 0), color);
         mesh->addVertex(glm::vec3(-1, 1, 0), color);

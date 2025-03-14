@@ -1,10 +1,11 @@
 #pragma once
 
+#include "core/Behavior.h"
+#include "core/Transform.h"
 #include "models/Mesh.h"
 #include "renderables/Renderable.h"
-#include "core/Behavior.h"
+#include "renderer/RenderTypes.h"
 #include "renderer/Shader.h"
-#include "core/Transform.h"
 
 #include <optional>
 #include <string>

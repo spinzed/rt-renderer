@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Camera.h"
+#include "renderer/Camera.h"
 #include "core/ParticleSystem.h"
 #include "core/WindowManager.h"
 #include "models/Light.h"

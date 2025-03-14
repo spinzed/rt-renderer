@@ -149,10 +149,10 @@ void Shader::setUniform(int index, int size, glm::mat4 matrix) const {
     GLCheckError();
 }
 
-// void Shader::setTexture(int textureNum, Texture<std::any> *texture) {
-//     texture->use();
-//     setUniform(SHADER_TEXTURE, textureNum);
-// }
+//void Shader::setTexture(int textureNum, Texture &texture) {
+//    texture->use();
+//    setUniform(SHADER_TEXTURE, textureNum);
+//}
 
 void Shader::setTexture(int uniform, int textureNum, int textureID) {
     GLCheckError();

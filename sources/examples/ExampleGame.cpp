@@ -4,17 +4,17 @@
 #include "core/Animator.h"
 
 // Local Headers
-#include "models/Mesh.h"
-#include "objects/MeshObject.h"
-#include "objects/PointCloud.h"
 #include "core/Behavior.h"
-#include "core/Camera.h"
-#include "renderer/Cubemap.h"
 #include "core/Input.h"
-#include "renderer/Shader.h"
 #include "core/Transform.h"
 #include "core/UI.h"
 #include "core/WindowManager.h"
+#include "models/Mesh.h"
+#include "objects/MeshObject.h"
+#include "objects/PointCloud.h"
+#include "renderer/Camera.h"
+#include "renderer/Cubemap.h"
+#include "renderer/Shader.h"
 #include "utils/ThreadPool.h"
 
 // System Headers

@@ -35,6 +35,9 @@ class Texture {
 
     void use(int textureID);
     void setSize(int width, int height);
+    int totalSize();
+    int sizeInMemory();
+    void dumpData(float *output);
 
     template <typename T> void setData(Raster<T> *raster);
     template <typename T> void setData(T *data);
@@ -47,11 +50,11 @@ class Texture {
 
     int width;
     int height;
+    int channels = -1;
 
   protected:
     // also accepts type so it can also be used for setting cubemap sides
     template <typename T> void setTextureData(int position, int glTextureType, T *data);
-    int channels = -1;
 
     void generateMipmaps() {
         GLCheckError();

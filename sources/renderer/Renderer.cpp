@@ -216,10 +216,10 @@ void Renderer::UpdateShader(Object *object, RenderData data) {
         shader->setUniform(SHADER_MATERIAL_COLOR_REFLECTIVE, 1, m->colorReflective);
         shader->setUniform(SHADER_MATERIAL_COLOR_EMISSIVE, 1, m->colorEmissive);
 
-        if (m->texture > 0) {
-            shader->setTexture(SHADER_TEXTURE, 3, m->texture);
+        if (m->texture != nullptr) {
+            shader->setTexture(SHADER_TEXTURE, 3, m->texture->id);
         }
-        shader->setUniform(SHADER_HAS_TEXTURES, m->texture > 0);
+        shader->setUniform(SHADER_HAS_TEXTURES, m->texture != nullptr);
     }
 
     shader->setTexture(SHADER_SHADOWMAP, RENDER_SHADOWMAPS ? 4 : 0, outputTexture->id);

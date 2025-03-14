@@ -8,7 +8,7 @@
 #include "utils/Timer.h"
 
 #define RAYTRACE_MULTICORE 1
-#define RAYTRACE_DEPTH 2
+#define RAYTRACE_DEPTH 3
 #define RAYTRACE_NUM_OF_SAMPLES 1
 #define RAYTRACE_RANDOMNESS 0
 #define RAYTRACE_OFFSET 1
@@ -46,6 +46,13 @@ class Raytracer {
       .renderMeshes = true,
     };
 
+    int width = 0;
+    int height = 0;
+
+    std::string debugString;
+    int depth = RAYTRACE_DEPTH;
+    int rpp = 1;
+
     float kSpecular() { return k_specular; }
     void setKSpecular(float k) { k_specular = k; }
 
@@ -63,13 +70,6 @@ class Raytracer {
     glm::vec3 raycast(RenderData data, glm::vec3 origin, glm::vec3 direction);              // returns color
     glm::vec3 raytrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth);  // returns color
     glm::vec3 pathtrace(RenderData data, glm::vec3 origin, glm::vec3 direction, int depth); // returns color
-
-    int width = 0;
-    int height = 0;
-
-    std::string debugString;
-    int depth = RAYTRACE_DEPTH;
-    int rpp = 1;
 
   private:
     bool monteCarlo = false;

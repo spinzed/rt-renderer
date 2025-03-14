@@ -59,11 +59,40 @@ void Texture::setStorage(unsigned int mask) {
     glBindImageTexture(0, id, 0, GL_FALSE, 0, mode, fullPictureFormat);
 }
 
-void Texture::setSize(int width, int height) {
-    this->width = width;
-    this->height = height;
+void Texture::setSize(int w, int h) {
+    width = w;
+    height = h;
     // setData<float>(4, NULL);                                              // not needed, might disable
     //  glBindTexture(GL_TEXTURE_2D, 0); // Unbind the texture
+}
+
+int Texture::totalSize() { return width * height * channels; }
+
+int Texture::sizeInMemory() { return totalSize() * sizeof(float); }
+
+void Texture::dumpData(float *output) {
+    GLCheckError();
+    GLuint pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    use(0);
+    glBufferData(GL_PIXEL_PACK_BUFFER, sizeInMemory(), nullptr, GL_STREAM_READ);
+    GLCheckError();
+    int pictureFormat = isDepth ? GL_DEPTH_COMPONENT : formatMap[channels];
+    glGetTexImage(GL_TEXTURE_2D, 0, pictureFormat, GLtype<float>::value, 0); // GL_FLOAT or GL_UNSIGNED_BYTE
+    GLCheckError();
+    glFinish();
+    void *ptr = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+    GLCheckError();
+    if (ptr) {
+        memcpy(output, ptr, sizeInMemory());
+        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        GLCheckError();
+    }
+    GLCheckError();
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glDeleteBuffers(1, &pbo);
+    GLCheckError();
 }
 
 void Texture::use(int textureID) {

@@ -2,7 +2,6 @@
 
 #include "models/Raster.h"
 #include "objects/Object.h"
-#include "renderables/MeshRenderer.h"
 #include "renderer/Texture.h"
 
 class FullscreenTexture : public Object {

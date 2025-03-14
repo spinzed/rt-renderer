@@ -5,7 +5,6 @@
 #include <utils/Timer.h>
 
 #include <cmath>
-#include <cuda_runtime.h>
 #include <curand.h>
 #include <curand_kernel.h>
 #include <iostream>
@@ -184,7 +183,8 @@ __device__ int raycastPlane(const RTRay &ray, const RTPlane *planes, const int n
     return closestIndex;
 }
 
-__device__ bool intersectTriangle(const RTRay &ray, float3 v0, float3 v1, float3 v2, float &t, float3 &normal) {
+__device__ bool intersectTriangle(const RTRay &ray, float3 v0, float3 v1, float3 v2, float &t, float &u, float &v,
+                                  float3 &normal) {
     float3 brid1 = v1 - v0;
     float3 brid2 = v2 - v0;
 
@@ -199,8 +199,8 @@ __device__ bool intersectTriangle(const RTRay &ray, float3 v0, float3 v1, float3
     float3 AO = ray.origin - v0;
     float3 DAO = cross(AO, ray.direction);
 
-    float u = dot(brid2, DAO) * invdet;
-    float v = -dot(brid1, DAO) * invdet;
+    u = dot(brid2, DAO) * invdet;
+    v = -dot(brid1, DAO) * invdet;
     t = dot(AO, normal) * invdet;
     return t >= 0.0f && u >= 0.0f && v >= 0.0f && (u + v) <= 1.0f;
 }
@@ -210,44 +210,88 @@ __device__ float3 getVertex(float *vertices, int *indices, int index) {
                        vertices[3 * indices[index] + 2]);
 }
 
-__device__ bool intersectMesh(const RTRay &ray, const RTMesh &mesh, float *vertices, int *indices, float &t,
-                              float3 &normal) {
-    for (int i = 0; i < mesh.indexNumber / 3; i++) {
-        float3 v0 = getVertex(vertices, indices, mesh.indexOffset + 3 * i);
-        float3 v1 = getVertex(vertices, indices, mesh.indexOffset + 3 * i + 1);
-        float3 v2 = getVertex(vertices, indices, mesh.indexOffset + 3 * i + 2);
-        if (intersectTriangle(ray, v0, v1, v2, t, normal)) {
-            return true;
-        }
-    }
-    return false;
+__device__ float2 getUVs(float *uvs, int *indices, int index) {
+    return make_float2(uvs[2 * indices[index]], uvs[2 * indices[index] + 1]);
 }
 
-__device__ int raycastMesh(const RTRay &ray, const RTMesh *meshes, int numMeshes, float *vertices, int *indices,
-                           float &t, float3 &hitPoint, float3 &normal) {
+__device__ bool intersectMesh(const RTScene *scene, const RTRay &ray, const RTMesh &mesh, float &t, float &u, float &v,
+                              float3 &normal) {
+
+    float w0, w1, w2, tempW1, tempW2, tempT;
+    t = 1e30;
+    float3 tempNormal;
+    int ind = -1;
+
+    for (int i = 0; i < mesh.indexNumber / 3; i++) {
+        int firstIndex = mesh.indexOffset + 3 * i;
+        float3 v0 = getVertex(scene->vertices, scene->indices, firstIndex);
+        float3 v1 = getVertex(scene->vertices, scene->indices, firstIndex + 1);
+        float3 v2 = getVertex(scene->vertices, scene->indices, firstIndex + 2);
+
+        if (intersectTriangle(ray, v0, v1, v2, tempT, tempW1, tempW2, normal) && tempT < t) {
+            w1 = tempW1;
+            w2 = tempW2;
+            normal = tempNormal;
+            t = tempT;
+            ind = firstIndex;
+        }
+    }
+
+    if (ind < 0)
+        return false;
+
+    normal = tempNormal;
+    float2 uv0 = getUVs(scene->uvs, scene->indices, ind);
+    float2 uv1 = getUVs(scene->uvs, scene->indices, ind + 1);
+    float2 uv2 = getUVs(scene->uvs, scene->indices, ind + 2);
+    w0 = 1.0f - w1 - w2;
+    u = w0 * uv0.x + w1 * uv1.x + w2 * uv2.x;
+    v = w0 * uv0.y + w1 * uv1.y + w2 * uv2.y;
+
+    return true;
+}
+
+__device__ int raycastMesh(const RTScene *scene, const RTRay &ray, float &t, float &u, float &v, float3 &hitPoint,
+                           float3 &normal) {
     if (!csettings.renderMeshes)
         return -1;
 
     int closestIndex = -1;
     float closestT = 1e30f;
+    float tempU;
+    float tempV;
+    float3 tempNormal;
 
-    for (int i = 0; i < numMeshes; i++) {
+    for (int i = 0; i < scene->meshNum; i++) {
         float t;
-        if (intersectMesh(ray, meshes[i], vertices, indices, t, normal) && t < closestT) {
+        if (intersectMesh(scene, ray, scene->meshes[i], t, tempU, tempV, tempNormal) && t < closestT) {
             closestT = t;
             closestIndex = i;
+            normal = tempNormal;
+            u = tempU;
+            v = tempV;
         }
     }
     if (closestIndex != -1) {
         t = closestT;
         hitPoint = ray.origin + ray.direction * closestT;
-        // normal is set already
     }
 
     return closestIndex;
 }
 
-__device__ bool raycast(const RTScene *scene, const RTRay &ray, float3 &point, float3 &normal, RTMaterial &material) {
+// u and v are only used if mesh->
+__device__ float3 getDiffuse(const RTScene *scene, RTMesh &mesh, float u, float v) {
+    RTMaterial mat = scene->materials[mesh.materialIndex];
+    if (mat.diffuseTextureIndex < 0)
+        return mat.diffuseColor;
+
+    RTTexture tx = scene->textures[mat.diffuseTextureIndex];
+    return tx.getElement(u, v);
+}
+
+__device__ bool raycast(const RTScene *scene, const RTRay &ray, float3 &point, float3 &normal, RTMaterial &material,
+                        float3 &diffuse) {
     float t, t1;
     int materialIndex = -1;
     bool hit = false;
@@ -257,6 +301,7 @@ __device__ bool raycast(const RTScene *scene, const RTRay &ray, float3 &point, f
     if (indexS >= 0) {
         hit = true;
         materialIndex = scene->spheres[indexS].materialIndex;
+        diffuse = scene->materials[materialIndex].diffuseColor;
     }
     int indexP = raycastPlane(ray, scene->planes, scene->planeNum, t1, tempHitpoint, tempNormal);
     if (indexP >= 0 && (!hit || t1 < t)) {
@@ -265,15 +310,17 @@ __device__ bool raycast(const RTScene *scene, const RTRay &ray, float3 &point, f
         point = tempHitpoint;
         normal = tempNormal;
         materialIndex = scene->planes[indexP].materialIndex;
+        diffuse = scene->materials[materialIndex].diffuseColor;
     }
-    int indexM =
-        raycastMesh(ray, scene->meshes, scene->meshNum, scene->vertices, scene->indices, t1, tempHitpoint, tempNormal);
+    float u, v;
+    int indexM = raycastMesh(scene, ray, t1, u, v, tempHitpoint, tempNormal);
     if (indexM >= 0 && (!hit || t1 < t)) {
         hit = true;
         t = t1;
         point = tempHitpoint;
         normal = tempNormal;
         materialIndex = scene->meshes[indexM].materialIndex;
+        diffuse = getDiffuse(scene, scene->meshes[indexM], u, v);
     }
     if (materialIndex != -1)
         material = scene->materials[materialIndex];
@@ -286,9 +333,9 @@ __device__ float3 raytrace(RTScene *scene, const RTRay &ray, int depth, curandSt
     if (depth <= 0)
         return make_float3(0, 0, 0);
 
-    float3 hitPoint, normal, color;
+    float3 hitPoint, normal, diffuseColor;
     RTMaterial material;
-    if (!raycast(scene, ray, hitPoint, normal, material))
+    if (!raycast(scene, ray, hitPoint, normal, material, diffuseColor))
         return make_float3(0.2, 0.2, 0.2);
 
     float3 reflected = normalize(reflect(ray.direction, normal));
@@ -301,7 +348,7 @@ __device__ float3 raytrace(RTScene *scene, const RTRay &ray, int depth, curandSt
     newRay.origin = newRay.origin + 0.001f * newRay.direction;
 
     float3 newColor = rayColor * material.emission * material.emissionStrength;
-    rayColor = rayColor * material.diffuse;
+    rayColor = rayColor * diffuseColor;
     return newColor + raytrace(scene, newRay, depth - 1, randState, rayColor);
 }
 
@@ -406,38 +453,72 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
 
     // transform scene data into format fit for transfer to vram
     std::vector<RTMaterial> materials;
+    std::vector<RTTexture> textures;
     std::vector<RTSphere> spheres;
     std::vector<RTPlane> planes;
     std::vector<RTMesh> meshes;
     std::vector<float> vertices;
+    std::vector<float> uvs;
     std::vector<int> indices;
 
+    RTMaterial defaultMaterial = {
+        .emission = make_float3(0, 0, 0),
+        .emissionStrength = 0.0f,
+        .diffuseColor = make_float3(0, 0, 0),
+        .diffuseTextureIndex = -1,
+        .smoothness = 0.0f,
+    };
+
+    materials.push_back(defaultMaterial);
+
     for (Object *obj : *data.objects) {
+        if (obj->material) {
+            // stopgap that'll eventually be fixed
+            obj->material->texture = obj->mesh->material->texture;
+
+            if (obj->material->texture) {
+                // gpu -> cpu
+                int size = obj->material->texture->totalSize();
+                float *buffer = new float[size];
+                obj->material->texture->dumpData(buffer);
+
+                // create texture obj
+                textures.push_back(RTTexture{
+                    .width = obj->material->texture->width,
+                    .height = obj->material->texture->height,
+                    .channels = obj->material->texture->channels,
+                    .data = nullptr,
+                });
+
+                // cpu -> gpu
+                gpuErrchk(cudaMalloc(&textures.back().data, size * sizeof(float)));
+                gpuErrchk(cudaMemcpy(textures.back().data, buffer, size * sizeof(float), cudaMemcpyHostToDevice));
+
+                free(buffer);
+            }
+            materials.push_back(RTMaterial{
+                .emission = vec3_to_float3(obj->material->colorEmissive),
+                .emissionStrength = obj->material->emissiveStrength,
+                .diffuseColor = vec3_to_float3(obj->material->colorDiffuse),
+                .diffuseTextureIndex = obj->material->texture ? (int)textures.size() - 1 : -1,
+                .smoothness = obj->material->smoothness,
+            });
+        }
+        int materialIndex = obj->material ? (int)materials.size() - 1 : 0;
+
         if (obj->type == "sphere") {
             Sphere *s = (Sphere *)obj;
             Transform tr = obj->getFullTransform();
-            materials.push_back(RTMaterial{
-                .emission = obj->material ? vec3_to_float3(obj->material->colorEmissive) : make_float3(0, 0, 0),
-                .emissionStrength = obj->material ? obj->material->emissiveStrength : 0.0f,
-                .diffuse = vec3_to_float3(s->color),
-                .smoothness = obj->material ? obj->material->smoothness : 0.0f,
-            });
             spheres.push_back(RTSphere{
                 .center = vec3_to_float3(tr.position()),
                 .radius = tr.getScale().x,
-                .materialIndex = (int)materials.size() - 1,
+                .materialIndex = materialIndex,
             });
         } else if (obj->type == "plane") {
             Plane *p = (Plane *)obj;
             glm::vec3 dims = p->getTransform()->getScale();
             glm::vec3 u, v;
             p->uv(u, v);
-            materials.push_back(RTMaterial{
-                .emission = obj->material ? vec3_to_float3(obj->material->colorEmissive) : make_float3(0, 0, 0),
-                .emissionStrength = obj->material ? obj->material->emissiveStrength : 0.0f,
-                .diffuse = vec3_to_float3(p->color),
-                .smoothness = obj->material ? obj->material->smoothness : 0.0f,
-            });
             planes.push_back(RTPlane{
                 .center = vec3_to_float3(p->center()),
                 .normal = vec3_to_float3(p->normal()),
@@ -445,35 +526,27 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
                 .height = dims.y,
                 .u = vec3_to_float3(u),
                 .v = vec3_to_float3(v),
-                .materialIndex = (int)materials.size() - 1,
+                .materialIndex = materialIndex,
             });
         } else if (obj->type == "mesh") {
             MeshObject *m = (MeshObject *)obj;
             Mesh meshCopy = *m->mesh;
             meshCopy.applyTransform(m->getFullTransform().getMatrix());
-
-            materials.push_back(RTMaterial{
-                .emission = obj->material ? vec3_to_float3(obj->material->colorEmissive) : make_float3(0, 0, 0),
-                .emissionStrength = obj->material ? obj->material->emissiveStrength : 0.0f,
-                .diffuse = obj->material ? vec3_to_float3(obj->material->colorDiffuse) : make_float3(0, 0, 0),
-                .smoothness = obj->material ? obj->material->smoothness : 0.0f,
-            });
             int indexOffset = (int)indices.size();
+            int uvOffset = (int)uvs.size();
 
             vertices.insert(vertices.end(), meshCopy.vrhovi.begin(), meshCopy.vrhovi.end());
+            uvs.insert(uvs.end(), m->mesh->textureCoords.begin(), m->mesh->textureCoords.end());
             indices.insert(indices.end(), m->mesh->indeksi.begin(), m->mesh->indeksi.end());
 
             meshes.push_back(RTMesh{
                 .indexOffset = indexOffset,
                 .indexNumber = (int)indices.size() - indexOffset,
-                .materialIndex = (int)materials.size() - 1,
+                .uvOffset = uvOffset,
+                .materialIndex = materialIndex,
             });
         }
     }
-
-    // for (const RTPlane& plane: planes) {
-    //     std::cout << plane.normal.x << " " << plane.normal.y << " " << plane.normal.z << std::endl;
-    // }
 
     RTScene h_scene = {
         .camera =
@@ -494,6 +567,7 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
         .meshNum = (int)meshes.size(),
         .meshes = nullptr,    // will point to d_meshes
         .vertices = nullptr,  // will point to d_vertices
+        .uvs = nullptr,       // will point to d_uvs
         .indices = nullptr,   // will point do d_indices
         .materials = nullptr, // will point to d_materials
     };
@@ -513,8 +587,10 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
     gpuErrchk(cudaMalloc(&h_scene.planes, h_scene.planeNum * sizeof(RTPlane)));
     gpuErrchk(cudaMalloc(&h_scene.meshes, h_scene.meshNum * sizeof(RTMesh)));
     gpuErrchk(cudaMalloc(&h_scene.vertices, vertices.size() * sizeof(float)));
+    gpuErrchk(cudaMalloc(&h_scene.uvs, uvs.size() * sizeof(float)));
     gpuErrchk(cudaMalloc(&h_scene.indices, indices.size() * sizeof(int)));
     gpuErrchk(cudaMalloc(&h_scene.materials, materials.size() * sizeof(RTMaterial)));
+    gpuErrchk(cudaMalloc(&h_scene.textures, textures.size() * sizeof(RTTexture)));
 
     // copy scene parts to vram
     gpuErrchk(
@@ -524,9 +600,12 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
         cudaMemcpy(h_scene.materials, materials.data(), materials.size() * sizeof(RTMaterial), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(h_scene.meshes, meshes.data(), h_scene.meshNum * sizeof(RTMesh), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(h_scene.vertices, vertices.data(), vertices.size() * sizeof(float), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(h_scene.uvs, uvs.data(), uvs.size() * sizeof(float), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(h_scene.indices, indices.data(), indices.size() * sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(
+        cudaMemcpy(h_scene.textures, textures.data(), textures.size() * sizeof(RTTexture), cudaMemcpyHostToDevice));
 
-    // allocate Scene struct on GPU and copy it
+    // allocate Scene struct on the GPU and copy it
     gpuErrchk(cudaMalloc(&d_scene, sizeof(RTScene)));
     gpuErrchk(cudaMemcpy(d_scene, &h_scene, sizeof(RTScene), cudaMemcpyHostToDevice));
 
@@ -539,8 +618,13 @@ void render(int width, int height, int depth, int rpp, RenderData data, float *o
 
     cudaMemcpy(output, d_output, rasterSize, cudaMemcpyDeviceToHost);
 
+    for (const RTTexture &texture : textures) {
+        gpuErrchk(cudaFree(texture.data));
+    }
+    gpuErrchk(cudaFree(h_scene.textures));
     gpuErrchk(cudaFree(h_scene.materials));
     gpuErrchk(cudaFree(h_scene.indices));
+    gpuErrchk(cudaFree(h_scene.uvs));
     gpuErrchk(cudaFree(h_scene.vertices));
     gpuErrchk(cudaFree(h_scene.meshes));
     gpuErrchk(cudaFree(h_scene.planes));
